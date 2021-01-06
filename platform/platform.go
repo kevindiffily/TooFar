@@ -3,8 +3,8 @@ package platform
 import (
 	// "fmt"
 	// "github.com/brutella/hc/log"
-	"indievisible.org/toofar/accessory"
-	"indievisible.org/toofar/config"
+	"github.com/cloudkucooland/toofar/accessory"
+	"github.com/cloudkucooland/toofar/config"
 	"sync"
 )
 

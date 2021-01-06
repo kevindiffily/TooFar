@@ -3,10 +3,10 @@ package owm
 import (
 	owm "github.com/briandowns/openweathermap"
 
-	tfaccessory "indievisible.org/toofar/accessory"
-	"indievisible.org/toofar/action"
-	"indievisible.org/toofar/config"
-	"indievisible.org/toofar/platform"
+	tfaccessory "github.com/cloudkucooland/toofar/accessory"
+	"github.com/cloudkucooland/toofar/action"
+	"github.com/cloudkucooland/toofar/config"
+	"github.com/cloudkucooland/toofar/platform"
 
 	"github.com/brutella/hc/accessory"
 	"github.com/brutella/hc/log"

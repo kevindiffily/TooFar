@@ -2,17 +2,18 @@ package toofar
 
 import (
 	"fmt"
-	"indievisible.org/toofar/accessory"
-	"indievisible.org/toofar/config"
-	"indievisible.org/toofar/homecontrol"
-	"indievisible.org/toofar/kasa"
-	"indievisible.org/toofar/onkyo"
-	"indievisible.org/toofar/owm"
-	"indievisible.org/toofar/ping"
-	"indievisible.org/toofar/platform"
-	"indievisible.org/toofar/shelly"
-	"indievisible.org/toofar/tfhttp"
-	"indievisible.org/toofar/tradfri"
+	"github.com/cloudkucooland/toofar/accessory"
+	"github.com/cloudkucooland/toofar/config"
+	"github.com/cloudkucooland/toofar/homecontrol"
+	"github.com/cloudkucooland/toofar/kasa"
+	"github.com/cloudkucooland/toofar/linuxsensors"
+	"github.com/cloudkucooland/toofar/onkyo"
+	"github.com/cloudkucooland/toofar/owm"
+	"github.com/cloudkucooland/toofar/ping"
+	"github.com/cloudkucooland/toofar/platform"
+	"github.com/cloudkucooland/toofar/shelly"
+	"github.com/cloudkucooland/toofar/tfhttp"
+	"github.com/cloudkucooland/toofar/tradfri"
 
 	"github.com/brutella/hc/log"
 )
@@ -41,10 +42,17 @@ func BootstrapPlatforms(c config.Config) {
 	var png ping.Platform
 	platform.RegisterPlatform("Ping", png)
 
+	var ls linuxsensors.Platform
+	platform.RegisterPlatform("LinuxSensors", ls)
+
 	var hcp tfhc.HCPlatform
 	platform.RegisterPlatform("HomeControl", hcp)
 
 	platform.StartupAllPlatforms(c)
+
+	// add a sensor
+	sensor := accessory.TFAccessory{}
+	ls.AddAccessory(&sensor)
 }
 
 // AddAccessory is a wrapper to each platform's AddAccessory, no need to expose each platform to the daemon

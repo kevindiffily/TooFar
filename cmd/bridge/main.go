@@ -9,10 +9,10 @@ import (
 	"strings"
 	"syscall"
 
-	"indievisible.org/toofar"
-	"indievisible.org/toofar/accessory"
-	"indievisible.org/toofar/config"
-	"indievisible.org/toofar/platform"
+	"github.com/cloudkucooland/toofar"
+	"github.com/cloudkucooland/toofar/accessory"
+	"github.com/cloudkucooland/toofar/config"
+	"github.com/cloudkucooland/toofar/platform"
 
 	"github.com/brutella/hc/log"
 	"github.com/urfave/cli/v2"

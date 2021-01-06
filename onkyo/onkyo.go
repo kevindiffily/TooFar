@@ -2,10 +2,10 @@ package onkyo
 
 import (
 	"github.com/cloudkucooland/go-eiscp"
-	tfaccessory "indievisible.org/toofar/accessory"
-	"indievisible.org/toofar/action"
-	"indievisible.org/toofar/config"
-	"indievisible.org/toofar/platform"
+	tfaccessory "github.com/cloudkucooland/toofar/accessory"
+	"github.com/cloudkucooland/toofar/action"
+	"github.com/cloudkucooland/toofar/config"
+	"github.com/cloudkucooland/toofar/platform"
 
 	// "fmt"
 	// "strings"
@@ -120,7 +120,7 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 			log.Info.Println(err.Error())
 		}
 		log.Info.Printf("set volume to: %d", res)
-    })
+	})
 
 	mute, err := dev.GetMute()
 	if err != nil {
@@ -198,79 +198,79 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	}
 
 	a.TXNR686.Television.RemoteKey.OnValueRemoteUpdate(func(newstate int) {
-        d, err := eiscp.NewReceiver(a.IP)
-        if err != nil {
-            log.Info.Println(err.Error())
-            return
-        }
-        defer d.Close()
-        switch newstate {
-        case characteristic.RemoteKeyRewind:
-            log.Info.Println("TXNR686: RemoteKey: Rew")
-            if err := d.SetOnly("NTC", "REW") ; err != nil {
-                log.Info.Println(err)
-            }
-        case characteristic.RemoteKeyFastForward:
-            log.Info.Println("TXNR686: RemoteKey: FF")
-            if err := d.SetOnly("NTC", "FF") ; err != nil {
-                log.Info.Println(err)
-            }
-        case characteristic.RemoteKeyExit:
-            log.Info.Println("TXNR686: RemoteKey: Exit")
-            if err := d.SetOnly("NTC", "RETURN") ; err != nil {
-                log.Info.Println(err)
-            }
-        case characteristic.RemoteKeyPlayPause:
-            log.Info.Println("TXNR686: RemoteKey: PlayPause")
-            if err := d.SetOnly("NTC", "P/P") ; err != nil {
-                log.Info.Println(err)
-            }
-        case characteristic.RemoteKeyInfo:
-            log.Info.Println("TXNR686: RemoteKey: Info")
-            if err := d.SetOnly("NTC", "TOP") ; err != nil {
-                log.Info.Println(err)
-            }
-        case characteristic.RemoteKeyNextTrack:
-            log.Info.Println("TXNR686: RemoteKey: Next Track")
-            if err := d.SetOnly("NTC", "TRUP") ; err != nil {
-                log.Info.Println(err)
-            }
-        case characteristic.RemoteKeyPrevTrack:
-            log.Info.Println("TXNR686: RemoteKey: Prev Track")
-            if err := d.SetOnly("NTC", "TRDN") ; err != nil {
-                log.Info.Println(err)
-            }
-        case characteristic.RemoteKeyArrowUp:
-            log.Info.Println("TXNR686: RemoteKey: Arrow Up")
-            if err := d.SetOnly("NTC", "UP") ; err != nil {
-                log.Info.Println(err)
-            }
-        case characteristic.RemoteKeyArrowDown:
-            log.Info.Println("TXNR686: RemoteKey: Arrow Down")
-            if err := d.SetOnly("NTC", "DOWN") ; err != nil {
-                log.Info.Println(err)
-            }
-        case characteristic.RemoteKeyArrowLeft:
-            log.Info.Println("TXNR686: RemoteKey: Arrow Left")
-            if err := d.SetOnly("NTC", "LEFT") ; err != nil {
-                log.Info.Println(err)
-            }
-        case characteristic.RemoteKeyArrowRight:
-            log.Info.Println("TXNR686: RemoteKey: Arrow Right")
-            if err := d.SetOnly("NTC", "RIGHT") ; err != nil {
-                log.Info.Println(err)
-            }
-        case characteristic.RemoteKeySelect:
-            log.Info.Println("TXNR686: RemoteKey: Select")
-            if err := d.SetOnly("NTC", "SELECT") ; err != nil {
-                log.Info.Println(err)
-            }
-        case characteristic.RemoteKeyBack:
-            log.Info.Println("TXNR686: RemoteKey: Back")
-            if err := d.SetOnly("NTC", "MENU") ; err != nil {
-                log.Info.Println(err)
-            }
-        }
+		d, err := eiscp.NewReceiver(a.IP)
+		if err != nil {
+			log.Info.Println(err.Error())
+			return
+		}
+		defer d.Close()
+		switch newstate {
+		case characteristic.RemoteKeyRewind:
+			log.Info.Println("TXNR686: RemoteKey: Rew")
+			if err := d.SetOnly("NTC", "REW"); err != nil {
+				log.Info.Println(err)
+			}
+		case characteristic.RemoteKeyFastForward:
+			log.Info.Println("TXNR686: RemoteKey: FF")
+			if err := d.SetOnly("NTC", "FF"); err != nil {
+				log.Info.Println(err)
+			}
+		case characteristic.RemoteKeyExit:
+			log.Info.Println("TXNR686: RemoteKey: Exit")
+			if err := d.SetOnly("NTC", "RETURN"); err != nil {
+				log.Info.Println(err)
+			}
+		case characteristic.RemoteKeyPlayPause:
+			log.Info.Println("TXNR686: RemoteKey: PlayPause")
+			if err := d.SetOnly("NTC", "P/P"); err != nil {
+				log.Info.Println(err)
+			}
+		case characteristic.RemoteKeyInfo:
+			log.Info.Println("TXNR686: RemoteKey: Info")
+			if err := d.SetOnly("NTC", "TOP"); err != nil {
+				log.Info.Println(err)
+			}
+		case characteristic.RemoteKeyNextTrack:
+			log.Info.Println("TXNR686: RemoteKey: Next Track")
+			if err := d.SetOnly("NTC", "TRUP"); err != nil {
+				log.Info.Println(err)
+			}
+		case characteristic.RemoteKeyPrevTrack:
+			log.Info.Println("TXNR686: RemoteKey: Prev Track")
+			if err := d.SetOnly("NTC", "TRDN"); err != nil {
+				log.Info.Println(err)
+			}
+		case characteristic.RemoteKeyArrowUp:
+			log.Info.Println("TXNR686: RemoteKey: Arrow Up")
+			if err := d.SetOnly("NTC", "UP"); err != nil {
+				log.Info.Println(err)
+			}
+		case characteristic.RemoteKeyArrowDown:
+			log.Info.Println("TXNR686: RemoteKey: Arrow Down")
+			if err := d.SetOnly("NTC", "DOWN"); err != nil {
+				log.Info.Println(err)
+			}
+		case characteristic.RemoteKeyArrowLeft:
+			log.Info.Println("TXNR686: RemoteKey: Arrow Left")
+			if err := d.SetOnly("NTC", "LEFT"); err != nil {
+				log.Info.Println(err)
+			}
+		case characteristic.RemoteKeyArrowRight:
+			log.Info.Println("TXNR686: RemoteKey: Arrow Right")
+			if err := d.SetOnly("NTC", "RIGHT"); err != nil {
+				log.Info.Println(err)
+			}
+		case characteristic.RemoteKeySelect:
+			log.Info.Println("TXNR686: RemoteKey: Select")
+			if err := d.SetOnly("NTC", "SELECT"); err != nil {
+				log.Info.Println(err)
+			}
+		case characteristic.RemoteKeyBack:
+			log.Info.Println("TXNR686: RemoteKey: Back")
+			if err := d.SetOnly("NTC", "MENU"); err != nil {
+				log.Info.Println(err)
+			}
+		}
 	})
 
 	a.Runner = runner
@@ -412,7 +412,7 @@ func (o Platform) backgroundPuller() {
 
 		if power && source == eiscp.SrcNetwork {
 			nps, err := dev.GetNetworkPlayStatus()
-		    // log.Info.Printf("setting CurrentMediaState to: %+v", nps)
+			// log.Info.Printf("setting CurrentMediaState to: %+v", nps)
 			if err != nil && nps != nil {
 				switch nps.State {
 				case "Play":

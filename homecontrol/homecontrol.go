@@ -1,12 +1,12 @@
 package tfhc
 
 import (
-	tfaccessory "indievisible.org/toofar/accessory"
-	"indievisible.org/toofar/action"
-	"indievisible.org/toofar/config"
-	"indievisible.org/toofar/devices"
-	"indievisible.org/toofar/platform"
-	"indievisible.org/toofar/runner"
+	tfaccessory "github.com/cloudkucooland/toofar/accessory"
+	"github.com/cloudkucooland/toofar/action"
+	"github.com/cloudkucooland/toofar/config"
+	"github.com/cloudkucooland/toofar/devices"
+	"github.com/cloudkucooland/toofar/platform"
+	"github.com/cloudkucooland/toofar/runner"
 
 	"github.com/brutella/hc"
 	"github.com/brutella/hc/accessory"
@@ -41,7 +41,7 @@ func StartHC(c config.Config) {
 		SerialNumber:     "0000001",
 		Manufacturer:     "deviousness",
 		Model:            "TooFar",
-		FirmwareRevision: "0.0.5",
+		FirmwareRevision: "0.0.6",
 	})
 	root.Accessory.OnIdentify(func() {
 		log.Info.Printf("root bridge identify called: %+v", root.Accessory)

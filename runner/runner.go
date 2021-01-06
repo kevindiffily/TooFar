@@ -4,8 +4,8 @@ package runner
 
 import (
 	"github.com/brutella/hc/log"
-	"indievisible.org/toofar/action"
-	"indievisible.org/toofar/platform"
+	"github.com/cloudkucooland/toofar/action"
+	"github.com/cloudkucooland/toofar/platform"
 )
 
 func RunActions(as []*action.Action) {

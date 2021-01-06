@@ -19,13 +19,13 @@ type TXNR686 struct {
 
 	// added to Speaker
 	VolumeActive *characteristic.Active
-	Volume *characteristic.Volume
+	Volume       *characteristic.Volume
 
-    // these break things 
-    /*
-    VolumeControlType *characteristic.VolumeControlType
-	VolumeSelector *characteristic.VolumeSelector // bad things happen
-     */
+	// these break things
+	/*
+		    VolumeControlType *characteristic.VolumeControlType
+			VolumeSelector *characteristic.VolumeSelector // bad things happen
+	*/
 
 	Sources map[int]string
 }
@@ -39,24 +39,24 @@ func NewTXNR686(info accessory.Info) *TXNR686 {
 
 	acc.Television.SleepDiscoveryMode.SetValue(characteristic.SleepDiscoveryModeAlwaysDiscoverable)
 	acc.Television.PowerModeSelection.SetValue(characteristic.PowerModeSelectionShow)
-    acc.Television.Primary = true
+	acc.Television.Primary = true
 	acc.AddService(acc.Television.Service)
 
 	acc.Volume = characteristic.NewVolume()
 	acc.Volume.Description = "Master Volume"
 	acc.Speaker.AddCharacteristic(acc.Volume.Characteristic)
 
-    /*
-    // this breaks things
-    acc.VolumeControlType = characteristic.NewVolumeControlType()
-    acc.VolumeControlType.Description = "VolumeControlType"
-    acc.VolumeControlType.SetValue(characteristic.VolumeControlTypeAbsolute)
-	acc.Speaker.AddCharacteristic(acc.VolumeControlType.Characteristic)
-    // this break things
-	acc.VolumeSelector = characteristic.NewVolumeSelector()
-	acc.VolumeSelector.Description = "VolumeSelector"
-	acc.Speaker.AddCharacteristic(acc.VolumeSelector.Characteristic)
-    */
+	/*
+		    // this breaks things
+		    acc.VolumeControlType = characteristic.NewVolumeControlType()
+		    acc.VolumeControlType.Description = "VolumeControlType"
+		    acc.VolumeControlType.SetValue(characteristic.VolumeControlTypeAbsolute)
+			acc.Speaker.AddCharacteristic(acc.VolumeControlType.Characteristic)
+		    // this break things
+			acc.VolumeSelector = characteristic.NewVolumeSelector()
+			acc.VolumeSelector.Description = "VolumeSelector"
+			acc.Speaker.AddCharacteristic(acc.VolumeSelector.Characteristic)
+	*/
 
 	acc.VolumeActive = characteristic.NewActive()
 	acc.VolumeActive.Description = "Speaker Active"
@@ -64,11 +64,11 @@ func NewTXNR686(info accessory.Info) *TXNR686 {
 	acc.Speaker.AddCharacteristic(acc.VolumeActive.Characteristic)
 
 	acc.Speaker.Mute.SetValue(false)
-    acc.Speaker.Primary = false
+	acc.Speaker.Primary = false
 	acc.AddService(acc.Speaker.Service)
 	// acc.Television.AddLinkedService(acc.Speaker.Service)
 
-    acc.Temp.Service.Primary = false
+	acc.Temp.Service.Primary = false
 	acc.AddService(acc.Temp.Service)
 
 	acc.Sources = make(map[int]string)
@@ -153,7 +153,7 @@ func (t *TXNR686) AddInputs(nfi *eiscp.NRI) {
 		is.TargetVisibilityState.SetValue(characteristic.TargetVisibilityStateHidden)
 		is.TargetVisibilityState.Description = "TargetVisibilityState"
 
-        // yes, both are required
+		// yes, both are required
 		t.AddService(is.Service)
 		t.Television.AddLinkedService(is.Service)
 
@@ -163,8 +163,8 @@ func (t *TXNR686) AddInputs(nfi *eiscp.NRI) {
 		})
 		is.TargetVisibilityState.OnValueRemoteUpdate(func(newstate int) {
 			log.Info.Printf("%s TargetVisibilityState: %d", *is.Name, newstate)
-            is.TargetVisibilityState.SetValue(newstate) // not saved, but fine for now
-            is.CurrentVisibilityState.SetValue(newstate) // not saved, but fine for now
+			is.TargetVisibilityState.SetValue(newstate)  // not saved, but fine for now
+			is.CurrentVisibilityState.SetValue(newstate) // not saved, but fine for now
 		})
 		is.IsConfigured.OnValueRemoteUpdate(func(newstate int) {
 			log.Info.Printf("%s IsConfigured: %d", is.Name, newstate)
@@ -192,7 +192,7 @@ type TXNR686Svc struct {
 	TargetMediaState   *characteristic.TargetMediaState
 	PictureMode        *characteristic.PictureMode
 	PowerModeSelection *characteristic.PowerModeSelection
-	RemoteKey      *characteristic.RemoteKey
+	RemoteKey          *characteristic.RemoteKey
 }
 
 func NewTXNR686Svc() *TXNR686Svc {
@@ -278,12 +278,12 @@ func NewTXNR686Svc() *TXNR686Svc {
 	svc.AddCharacteristic(svc.PowerModeSelection.Characteristic)
 	svc.PowerModeSelection.OnValueRemoteUpdate(func(newstate int) {
 		log.Info.Printf("TXNR686: PowerModeSelection: %d", newstate)
-        svc.PowerModeSelection.SetValue(newstate)
+		svc.PowerModeSelection.SetValue(newstate)
 	})
 
 	svc.RemoteKey = characteristic.NewRemoteKey()
 	svc.AddCharacteristic(svc.RemoteKey.Characteristic)
-    svc.RemoteKey.SetValue(characteristic.RemoteKeyInfo)
+	svc.RemoteKey.SetValue(characteristic.RemoteKeyInfo)
 
 	return &svc
 }

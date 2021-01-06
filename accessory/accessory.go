@@ -5,8 +5,8 @@ import (
 	"github.com/brutella/hc/service"
 	// "github.com/brutella/hc/characteristic"
 	"github.com/brutella/hc/log"
-	"indievisible.org/toofar/action"
-	"indievisible.org/toofar/devices"
+	"github.com/cloudkucooland/toofar/action"
+	"github.com/cloudkucooland/toofar/devices"
 )
 
 // TFAccessory is the accessory type, TooFar's stuff, plus hc's stuff

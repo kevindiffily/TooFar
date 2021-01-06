@@ -1,11 +1,11 @@
 package shelly
 
 import (
-	tfaccessory "indievisible.org/toofar/accessory"
-	"indievisible.org/toofar/action"
-	"indievisible.org/toofar/config"
-	"indievisible.org/toofar/platform"
-	"indievisible.org/toofar/runner"
+	tfaccessory "github.com/cloudkucooland/toofar/accessory"
+	"github.com/cloudkucooland/toofar/action"
+	"github.com/cloudkucooland/toofar/config"
+	"github.com/cloudkucooland/toofar/platform"
+	"github.com/cloudkucooland/toofar/runner"
 
 	"encoding/hex"
 	"encoding/json"

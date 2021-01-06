@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"github.com/brutella/hc/accessory"
 	"github.com/brutella/hc/log"
-	tfaccessory "indievisible.org/toofar/accessory"
-	"indievisible.org/toofar/config"
-	"indievisible.org/toofar/platform"
+	tfaccessory "github.com/cloudkucooland/toofar/accessory"
+	"github.com/cloudkucooland/toofar/config"
+	"github.com/cloudkucooland/toofar/platform"
 	"net"
 	"sync"
 	"time"
@@ -62,6 +62,7 @@ var doOnce sync.Once
 // Startup is called by the platform management to start the platform up
 func (k Platform) Startup(c config.Config) platform.Control {
 	k.Running = true
+	go broadcastDiscovery()
 	return k
 }
 
@@ -242,9 +243,16 @@ func getSettings(a *tfaccessory.TFAccessory) (*kasaSysinfo, error) {
 
 // Background runs a background Go task verifying HC has the current state of the Kasa devices
 func (k Platform) Background() {
+	// check everything's status every minute
 	go func() {
 		for range time.Tick(time.Second * 60) {
 			k.backgroundPuller()
+		}
+	}()
+	// look for new devices every 3 hours (things sometimes go missing in power outages, etc)
+	go func() {
+		for range time.Tick(time.Hour * 3) {
+			broadcastDiscovery()
 		}
 	}()
 }
@@ -327,16 +335,67 @@ func send(ip string, cmd string) (string, error) {
 
 	// this is slow AF // data, err := ioutil.ReadAll(conn)
 	// 200's return ~600 bytes, 220's return ~800 bytes; 1k should be enough
+	// see go-eiscp's method for how to improve this
 	data := make([]byte, 1024)
 	n, err := conn.Read(data)
 	if err != nil {
 		log.Info.Println("Cannot read data from device:", err)
 		return "", err
 	}
-	if n > 1024 {
-		log.Info.Println("result overran buffer, bailing")
-		return "", err
-	}
 	result := decrypt(data[4:n]) // start reading at 4, go to total bytes read
 	return result, nil
+}
+
+func broadcastDiscovery() {
+	// https://github.com/aler9/howto-udp-broadcast-golang
+	listener, err := net.ListenPacket("udp4", ":9999")
+	if err != nil {
+		log.Info.Printf("unable to start discovery listener: %s", err.Error())
+		return
+	}
+
+	// listen for 15 seconds for responses
+	go func() {
+		listener.SetReadDeadline(time.Now().Add(time.Second * 15))
+		defer listener.Close()
+		buf := make([]byte, 1024)
+		for {
+			n, responder, err := listener.ReadFrom(buf)
+			if err != nil {
+				log.Info.Printf("discovery listener: %s", err.Error())
+				break
+			}
+			log.Info.Printf("kasa discovery: %s responded with: %s", responder, decrypt(buf[4:n]))
+			// if it isn't already in the list of known devices, add it
+		}
+	}()
+
+	// TODO: Get list of local subnets, scan each, don't hardcode my subnet
+	payload := encrypt(`{"system":{"get_sysinfo":null},"smartlife.iot.dimmer":{"get_dimmer_parameters":null}}`)
+	for i := 0; i < 3; i++ {
+		log.Info.Println("subnet query")
+		addr, err := net.ResolveUDPAddr("udp4", "192.168.1.255:9999")
+		if err != nil {
+			log.Info.Printf("discovery failed: %s", err.Error())
+			return
+		}
+		_, err = listener.WriteTo(payload, addr)
+		if err != nil {
+			log.Info.Printf("discovery failed: %s", err.Error())
+			return
+		}
+
+		log.Info.Println("broadcast query")
+		addr, err = net.ResolveUDPAddr("udp4", "255.255.255.255:9999")
+		if err != nil {
+			log.Info.Printf("discovery failed: %s", err.Error())
+			return
+		}
+		_, err = listener.WriteTo(payload, addr)
+		if err != nil {
+			log.Info.Printf("discovery failed: %s", err.Error())
+			return
+		}
+		time.Sleep(time.Second * 3)
+	}
 }
