@@ -1,9 +1,9 @@
 {
-  "Name": "covert",
+  "Name": "name",
   "HTTPAddress": ":8444",
   "HCConfig": {
-    "SetupId": "GFCV", 
-    "Pin": "45338245",
+    "SetupId": "ACDC", 
+    "Pin": "45335543",
     "Port": "8443"
   }
 }
