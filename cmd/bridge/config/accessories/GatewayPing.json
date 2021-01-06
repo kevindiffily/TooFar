@@ -1,0 +1,8 @@
+{
+    "Platform": "Ping",
+    "IP": "192.168.1.254",
+    "INFO": {
+        "Name": "ATT Gateway",
+        "ID": 200
+    }
+}

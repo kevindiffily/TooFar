@@ -1,0 +1,12 @@
+{
+  "Platform": "HomeControl",
+  "Type": 8,
+  "Info": {
+    "Name": "Scot Office Lamp Color Toggle",
+    "ID": 13,
+    "FirmwareRevision": "0.0.2",
+    "SerialNumber": "SO-36A",
+    "Manufacturer": "HomeControl",
+    "Model": "Switch with no hardware"
+  }
+}

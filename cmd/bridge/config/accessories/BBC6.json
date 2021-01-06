@@ -1,0 +1,28 @@
+{
+  "Platform": "HomeControl",
+  "Type": 8,
+  "Info": {
+    "Name": "Play BBC6",
+    "ID": 6,
+    "FirmwareRevision": "0.0.0",
+    "SerialNumber": "6Music",
+    "Manufacturer": "SCB",
+    "Model": "SCB-BBC6Music"
+  },
+  "Actions": [
+    {
+      "TriggerState": "Off",
+      "TargetPlatform": "Onkyo",
+      "TargetDevice":  "Onkyo",
+      "Verb": "Stop",
+      "Value": "NA"
+    },
+    {
+      "TriggerState": "On",
+      "TargetPlatform": "Onkyo",
+      "TargetDevice":  "Onkyo",
+      "Verb": "TuneInPreset",
+      "Value": "1"
+    }
+  ]
+}

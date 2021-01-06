@@ -1,0 +1,24 @@
+{
+  "Platform": "Shelly",
+  "IP": "192.168.1.150",
+  "Username": "scot",
+  "Password": "shinealight",
+  "Type": 8,
+  "Info": {},
+  "Actions": [
+    {
+      "TriggerState": "Off",
+      "TargetPlatform": "Tradfri-Device",
+      "TargetDevice":  "65545",
+      "SetTargetState": true,
+      "SetTargetBrightness": 15
+    },
+    {
+      "TriggerState": "On",
+      "TargetPlatform": "Tradfri-Device",
+      "TargetDevice":  "65545",
+      "SetTargetState": true,
+      "SetTargetBrightness": 15 
+    }
+  ]
+}
