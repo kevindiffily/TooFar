@@ -100,7 +100,7 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		if err != nil {
 			log.Info.Println(err.Error())
 		}
-		log.Info.Printf("set power to: %s", res.Response)
+		log.Info.Printf("set power to: %s", res)
 	})
 
 	// set initial volume
@@ -126,9 +126,8 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	if err != nil {
 		log.Info.Println(err.Error())
 	} else {
-		b, _ := strconv.ParseBool(mute.Response)
-		log.Info.Printf("setting initial mute to: %t", b)
-		a.TXNR686.Speaker.Mute.SetValue(b)
+		log.Info.Printf("setting initial mute to: %t", mute)
+		a.TXNR686.Speaker.Mute.SetValue(mute)
 	}
 	a.TXNR686.Speaker.Mute.OnValueRemoteUpdate(func(newstate bool) {
 		log.Info.Printf("setting mute to: %t", newstate)
@@ -160,11 +159,11 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		log.Info.Printf("Setting input to %d", newstate)
 		dev.Connect()
 		defer dev.Close()
-		res, err := dev.SetSourceByCode(newstate)
+		source, err := dev.SetSourceByCode(newstate)
 		if err != nil {
 			log.Info.Println(err.Error())
 		}
-		log.Info.Printf("set input to %s", res.Response)
+		log.Info.Printf("set input to %s", source)
 	})
 
 	source, err := dev.GetSource()
@@ -393,12 +392,11 @@ func (o Platform) backgroundPuller() {
 			a.TXNR686.Television.Volume.SetValue(int(vol))
 		}
 
-		msg, err := dev.GetMute()
+		mute, err := dev.GetMute()
 		if err != nil {
 			log.Info.Println(err.Error())
 		} else {
-			b, _ := strconv.ParseBool(msg.Response)
-			a.TXNR686.Speaker.Mute.SetValue(b)
+			a.TXNR686.Speaker.Mute.SetValue(mute)
 		}
 
 		source, err := dev.GetSource()

@@ -147,10 +147,12 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 			err := setRelayState(a, newstate)
 			if err != nil {
 				log.Info.Println(err.Error())
+				return
 			}
 			ks, err := getSettings(a)
 			if err != nil {
 				log.Info.Println(err.Error())
+				return
 			}
 			if (ks.RelayState > 0) != newstate {
 				log.Info.Printf("unable to update kasa state to %t", newstate)
@@ -164,14 +166,16 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 			err := setBrightness(a, newval)
 			if err != nil {
 				log.Info.Println(err.Error())
+				return
 			}
 			ks, err := getSettings(a)
 			if err != nil {
 				log.Info.Println(err.Error())
+				return
 			}
 			if ks.Brightness != newval {
 				log.Info.Printf("unable to update kasa brightness to %d", newval)
-				a.ColoredLightbulb.Lightbulb.Brightness.SetValue(ks.Brightness)
+				a.HS220.Lightbulb.Brightness.SetValue(ks.Brightness)
 			}
 		})
 		a.HS220.Lightbulb.ProgrammableSwitchOutputState.OnValueRemoteUpdate(func(newval int) {
@@ -179,10 +183,12 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 			err := setRelayState(a, newval == 1)
 			if err != nil {
 				log.Info.Println(err.Error())
+				return
 			}
 			ks, err := getSettings(a)
 			if err != nil {
 				log.Info.Println(err.Error())
+				return
 			}
 			log.Info.Printf("%+v", ks)
 		})
@@ -207,7 +213,6 @@ func setRelayState(a *tfaccessory.TFAccessory, newstate bool) error {
 }
 
 func setBrightness(a *tfaccessory.TFAccessory, newval int) error {
-	// log.Info.Printf("setting kasa hardware brightness for [%s]", a.Name)
 	cmd := fmt.Sprintf(`{"smartlife.iot.dimmer":{"set_brightness":{"brightness":%d}}}`, newval)
 	_, err := send(a.IP, cmd)
 	if err != nil {
@@ -247,12 +252,6 @@ func (k Platform) Background() {
 	go func() {
 		for range time.Tick(time.Second * 60) {
 			k.backgroundPuller()
-		}
-	}()
-	// look for new devices every 3 hours (things sometimes go missing in power outages, etc)
-	go func() {
-		for range time.Tick(time.Hour * 3) {
-			broadcastDiscovery()
 		}
 	}()
 }

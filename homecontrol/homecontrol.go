@@ -63,6 +63,7 @@ func StartHC(c config.Config) {
 		<-transport.Stop()
 	})
 	go transport.Start()
+	// log.Info.Println(transport.XHMURI())
 }
 
 // Shutdown is called at process teardown
