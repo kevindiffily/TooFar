@@ -384,7 +384,9 @@ func tradfriUpdateAll() {
 		switch d.Type {
 		case DeviceTypeLightbulb:
 			if tdd.ColoredLightbulb != nil {
-				tdd.ColoredLightbulb.Lightbulb.On.SetValue(d.LightControl[0].Power > 0)
+				if tdd.ColoredLightbulb.Lightbulb.On.GetValue() != (d.LightControl[0].Power > 0) {
+					tdd.ColoredLightbulb.Lightbulb.On.SetValue(d.LightControl[0].Power > 0)
+				}
 				dv := int(mapRange(float64(d.LightControl[0].Dimmer), 0, 254, 0, 100))
 				tdd.ColoredLightbulb.Lightbulb.Brightness.SetValue(dv)
 				dhue := mapRange(float64(d.LightControl[0].Hue), 0, 65279, 0, 360)
@@ -393,13 +395,19 @@ func tradfriUpdateAll() {
 				tdd.ColoredLightbulb.Lightbulb.Saturation.SetValue(dsat)
 			}
 			if tdd.Lightbulb != nil {
-				tdd.Lightbulb.Lightbulb.On.SetValue(d.LightControl[0].Power > 0)
+				if tdd.Lightbulb.Lightbulb.On.GetValue() != (d.LightControl[0].Power > 0) {
+					tdd.Lightbulb.Lightbulb.On.SetValue(d.LightControl[0].Power > 0)
+				}
 			}
 			if tdd.TempLightbulb != nil {
-				tdd.TempLightbulb.Lightbulb.On.SetValue(d.LightControl[0].Power > 0)
+				if tdd.TempLightbulb.Lightbulb.On.GetValue() != (d.LightControl[0].Power > 0) {
+					tdd.TempLightbulb.Lightbulb.On.SetValue(d.LightControl[0].Power > 0)
+				}
 				dv := int(mapRange(float64(d.LightControl[0].Dimmer), 0, 254, 0, 100))
-				tdd.TempLightbulb.Lightbulb.Brightness.SetValue(dv)
-				// if you change the color in Ikea's app, ... well ... I can't convert from HSL to Kelvin yet
+				if tdd.TempLightbulb.Lightbulb.Brightness.GetValue() != dv {
+					tdd.TempLightbulb.Lightbulb.Brightness.SetValue(dv)
+					// if you change the color in Ikea's app, ... well ... I can't convert from HSL to Kelvin yet
+				}
 			}
 		case DeviceTypePlug:
 			// this is wrong -- don't have a plug to test, just wanted something here for the switch to make sense

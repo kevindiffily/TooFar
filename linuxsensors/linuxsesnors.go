@@ -109,8 +109,10 @@ func (s Platform) backgroundPuller() {
 			if k == "temp1" {
 				sensors.Thermometer.TempSensor.CurrentTemperature.Description = "CurrentTemperature"
 				temp, _ := strconv.ParseFloat(v[1:5], 64)
-				// log.Info.Printf("setting OS temp to: %f", temp)
-				sensors.Thermometer.TempSensor.CurrentTemperature.SetValue(temp)
+				if temp != sensors.Thermometer.TempSensor.CurrentTemperature.GetValue() {
+					// log.Info.Printf("setting OS temp to: %f", temp)
+					sensors.Thermometer.TempSensor.CurrentTemperature.SetValue(temp)
+				}
 			}
 		}
 	}

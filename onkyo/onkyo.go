@@ -369,9 +369,11 @@ func (o Platform) backgroundPuller() {
 			if power {
 				p = 1
 			}
-			a.TXNR686.Television.Active.SetValue(p)
-			a.TXNR686.VolumeActive.SetValue(p)
-			a.TXNR686.Television.On.SetValue(power)
+			if power != a.TXNR686.Television.On.GetValue() {
+				a.TXNR686.Television.Active.SetValue(p)
+				a.TXNR686.VolumeActive.SetValue(p)
+				a.TXNR686.Television.On.SetValue(power)
+			}
 		}
 
 		cent, err := dev.GetTempData()
@@ -389,14 +391,18 @@ func (o Platform) backgroundPuller() {
 		if err != nil {
 			log.Info.Println(err.Error())
 		} else {
-			a.TXNR686.Television.Volume.SetValue(int(vol))
+			if int(vol) != a.TXNR686.Television.Volume.GetValue() {
+				a.TXNR686.Television.Volume.SetValue(int(vol))
+			}
 		}
 
 		mute, err := dev.GetMute()
 		if err != nil {
 			log.Info.Println(err.Error())
 		} else {
-			a.TXNR686.Speaker.Mute.SetValue(mute)
+			if mute != a.TXNR686.Speaker.Mute.GetValue() {
+				a.TXNR686.Speaker.Mute.SetValue(mute)
+			}
 		}
 
 		source, err := dev.GetSource()
@@ -404,8 +410,10 @@ func (o Platform) backgroundPuller() {
 			log.Info.Println(err.Error())
 		} else {
 			i, _ := strconv.ParseInt(string(source), 16, 32)
-			a.TXNR686.Television.ActiveIdentifier.SetValue(int(i))
-			a.TXNR686.Television.ConfiguredName.SetValue(a.TXNR686.Sources[int(i)])
+			if int(i) != a.TXNR686.Television.ActiveIdentifier.GetValue() {
+				a.TXNR686.Television.ActiveIdentifier.SetValue(int(i))
+				a.TXNR686.Television.ConfiguredName.SetValue(a.TXNR686.Sources[int(i)])
+			}
 		}
 
 		if power && source == eiscp.SrcNetwork {
@@ -414,14 +422,20 @@ func (o Platform) backgroundPuller() {
 			if err != nil && nps != nil {
 				switch nps.State {
 				case "Play":
-					a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStatePlay)
-					a.TXNR686.Television.TargetMediaState.SetValue(characteristic.TargetMediaStatePlay)
+					if a.TXNR686.Television.CurrentMediaState.GetValue() != characteristic.CurrentMediaStatePlay {
+						a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStatePlay)
+						a.TXNR686.Television.TargetMediaState.SetValue(characteristic.TargetMediaStatePlay)
+					}
 				case "Stop":
-					a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStateStop)
-					a.TXNR686.Television.TargetMediaState.SetValue(characteristic.TargetMediaStateStop)
+					if a.TXNR686.Television.CurrentMediaState.GetValue() != characteristic.CurrentMediaStateStop {
+						a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStateStop)
+						a.TXNR686.Television.TargetMediaState.SetValue(characteristic.TargetMediaStateStop)
+					}
 				case "Pause":
-					a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStatePause)
-					a.TXNR686.Television.TargetMediaState.SetValue(characteristic.TargetMediaStatePause)
+					if a.TXNR686.Television.CurrentMediaState.GetValue() != characteristic.CurrentMediaStatePause {
+						a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStatePause)
+						a.TXNR686.Television.TargetMediaState.SetValue(characteristic.TargetMediaStatePause)
+					}
 				default:
 					a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStateUnknown)
 				}

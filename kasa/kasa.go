@@ -62,7 +62,6 @@ var doOnce sync.Once
 // Startup is called by the platform management to start the platform up
 func (k Platform) Startup(c config.Config) platform.Control {
 	k.Running = true
-	go broadcastDiscovery()
 	return k
 }
 
@@ -81,7 +80,7 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	// pull switch to get a.Info -- override the config file with reality
 	settings, err := getSettings(a)
 	if err != nil {
-		log.Info.Print("unable to identify kasa device, skipping: %s", err.Error())
+		log.Info.Printf("unable to identify kasa device, skipping: %s", err.Error())
 		return
 	}
 	a.Info.Name = settings.Alias
@@ -332,7 +331,6 @@ func send(ip string, cmd string) (string, error) {
 		return "", err
 	}
 
-	// this is slow AF // data, err := ioutil.ReadAll(conn)
 	// 200's return ~600 bytes, 220's return ~800 bytes; 1k should be enough
 	// see go-eiscp's method for how to improve this
 	data := make([]byte, 1024)
@@ -343,58 +341,4 @@ func send(ip string, cmd string) (string, error) {
 	}
 	result := decrypt(data[4:n]) // start reading at 4, go to total bytes read
 	return result, nil
-}
-
-func broadcastDiscovery() {
-	// https://github.com/aler9/howto-udp-broadcast-golang
-	listener, err := net.ListenPacket("udp4", ":9999")
-	if err != nil {
-		log.Info.Printf("unable to start discovery listener: %s", err.Error())
-		return
-	}
-
-	// listen for 15 seconds for responses
-	go func() {
-		listener.SetReadDeadline(time.Now().Add(time.Second * 15))
-		defer listener.Close()
-		buf := make([]byte, 1024)
-		for {
-			n, responder, err := listener.ReadFrom(buf)
-			if err != nil {
-				log.Info.Printf("discovery listener: %s", err.Error())
-				break
-			}
-			log.Info.Printf("kasa discovery: %s responded with: %s", responder, decrypt(buf[4:n]))
-			// if it isn't already in the list of known devices, add it
-		}
-	}()
-
-	// TODO: Get list of local subnets, scan each, don't hardcode my subnet
-	payload := encrypt(`{"system":{"get_sysinfo":null},"smartlife.iot.dimmer":{"get_dimmer_parameters":null}}`)
-	for i := 0; i < 3; i++ {
-		log.Info.Println("subnet query")
-		addr, err := net.ResolveUDPAddr("udp4", "192.168.1.255:9999")
-		if err != nil {
-			log.Info.Printf("discovery failed: %s", err.Error())
-			return
-		}
-		_, err = listener.WriteTo(payload, addr)
-		if err != nil {
-			log.Info.Printf("discovery failed: %s", err.Error())
-			return
-		}
-
-		log.Info.Println("broadcast query")
-		addr, err = net.ResolveUDPAddr("udp4", "255.255.255.255:9999")
-		if err != nil {
-			log.Info.Printf("discovery failed: %s", err.Error())
-			return
-		}
-		_, err = listener.WriteTo(payload, addr)
-		if err != nil {
-			log.Info.Printf("discovery failed: %s", err.Error())
-			return
-		}
-		time.Sleep(time.Second * 3)
-	}
 }

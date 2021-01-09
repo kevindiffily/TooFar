@@ -69,18 +69,20 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	w.CurrentByName(a.Username)
 	log.Info.Printf("%+v", w.Main)
 	a.Thermometer.TempSensor.CurrentTemperature.Description = "CurrentTemperature"
-	a.Thermometer.TempSensor.CurrentTemperature.SetValue(w.Main.Temp)
-	// a.Thermometer.TempSensor.CurrentTemperature.SetMinValue(w.Main.TempMin)
-	// a.Thermometer.TempSensor.CurrentTemperature.SetMaxValue(w.Main.TempMax)
-	// a.Thermometer.TempSensor.AddCharacteristic(a.StatusActive.Characteristic)
+	if a.Thermometer.TempSensor.CurrentTemperature.GetValue() != w.Main.Temp {
+		a.Thermometer.TempSensor.CurrentTemperature.SetValue(w.Main.Temp)
+		// a.Thermometer.TempSensor.CurrentTemperature.SetMinValue(w.Main.TempMin)
+		// a.Thermometer.TempSensor.CurrentTemperature.SetMaxValue(w.Main.TempMax)
+		// a.Thermometer.TempSensor.AddCharacteristic(a.StatusActive.Characteristic)
+	}
 
 	a.HumiditySensor = service.NewHumiditySensor()
 	a.Accessory.AddService(a.HumiditySensor.Service)
 	a.HumiditySensor.CurrentRelativeHumidity.Description = "CurrentRelativeHumidity"
-	a.HumiditySensor.CurrentRelativeHumidity.SetValue(float64(w.Main.Humidity))
+	if a.HumiditySensor.CurrentRelativeHumidity.GetValue() != float64(w.Main.Humidity) {
+		a.HumiditySensor.CurrentRelativeHumidity.SetValue(float64(w.Main.Humidity))
+	}
 	// a.HumiditySensor.AddCharacteristic(a.StatusActive.Characteristic)
-
-	// if w.Main.Temp != 0 && w.Main.Humidity != 0 { a.StatusActive.SetValue(true) }
 }
 
 // actionRunner here makes no sense...
@@ -112,12 +114,10 @@ func (o Platform) backgroundPuller() {
 		w.CurrentByName(a.Username)
 		// log.Info.Printf("%+v", w.Main)
 		// if w.Main.Temp == 0 && w.Main.Humidity == 0 { a.StatusActive.SetValue(false) } else if a.StatusActive.GetValue() == false { a.StatusActive.SetValue(true) }
-		if a.Thermometer != nil {
+		if a.Thermometer != nil && a.Thermometer.TempSensor.CurrentTemperature.GetValue() != w.Main.Temp {
 			a.Thermometer.TempSensor.CurrentTemperature.SetValue(w.Main.Temp)
-			// a.Thermometer.TempSensor.CurrentTemperature.SetMinValue(w.Main.TempMin)
-			// a.Thermometer.TempSensor.CurrentTemperature.SetMaxValue(w.Main.TempMax)
 		}
-		if a.HumiditySensor != nil {
+		if a.HumiditySensor != nil && a.HumiditySensor.CurrentRelativeHumidity.GetValue() != float64(w.Main.Humidity) {
 			a.HumiditySensor.CurrentRelativeHumidity.SetValue(float64(w.Main.Humidity))
 		}
 	}
