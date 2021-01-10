@@ -5,6 +5,7 @@ import (
 	"github.com/brutella/hc/characteristic"
 	"github.com/brutella/hc/log"
 	"github.com/brutella/hc/service"
+	"github.com/brutella/hc/util"
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
 	"github.com/cloudkucooland/toofar/config"
 	"github.com/cloudkucooland/toofar/platform"
@@ -43,6 +44,11 @@ func (p Platform) Shutdown() platform.Control {
 
 // AddAccessory adds a Kasa device, pulls it for info, then adds it to HC
 func (p Platform) AddAccessory(a *tfaccessory.TFAccessory) {
+	storage, err := util.NewFileStorage("serials")
+	if err != nil {
+		log.Info.Println("unable to get storage")
+	}
+
 	doOnce.Do(func() {
 		devices = make(map[string]*tfaccessory.TFAccessory)
 	})
@@ -51,6 +57,11 @@ func (p Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		a.Info.Name = a.Name
 	}
 	a.Type = accessory.TypeSecuritySystem
+	serial := util.GetSerialNumberForAccessoryName(a.Info.Name, storage)
+	a.Info.SerialNumber = serial
+	a.Info.Model = "TooFarPing"
+	a.Info.FirmwareRevision = "0.0.1"
+	a.Info.Manufacturer = "deviousness"
 
 	h, _ := platform.GetPlatform("HomeControl")
 	h.AddAccessory(a)

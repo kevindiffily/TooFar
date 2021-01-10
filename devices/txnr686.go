@@ -21,11 +21,9 @@ type TXNR686 struct {
 	VolumeActive *characteristic.Active
 	Volume       *characteristic.Volume
 
-	// these break things
-	/*
-		    VolumeControlType *characteristic.VolumeControlType
-			VolumeSelector *characteristic.VolumeSelector // bad things happen
-	*/
+	// these break things if added
+	VolumeControlType *characteristic.VolumeControlType
+	VolumeSelector    *characteristic.VolumeSelector // bad things happen
 
 	Sources map[int]string
 }
@@ -46,17 +44,15 @@ func NewTXNR686(info accessory.Info) *TXNR686 {
 	acc.Volume.Description = "Master Volume"
 	acc.Speaker.AddCharacteristic(acc.Volume.Characteristic)
 
-	/*
-		    // this breaks things
-		    acc.VolumeControlType = characteristic.NewVolumeControlType()
-		    acc.VolumeControlType.Description = "VolumeControlType"
-		    acc.VolumeControlType.SetValue(characteristic.VolumeControlTypeAbsolute)
-			acc.Speaker.AddCharacteristic(acc.VolumeControlType.Characteristic)
-		    // this break things
-			acc.VolumeSelector = characteristic.NewVolumeSelector()
-			acc.VolumeSelector.Description = "VolumeSelector"
-			acc.Speaker.AddCharacteristic(acc.VolumeSelector.Characteristic)
-	*/
+	acc.VolumeControlType = characteristic.NewVolumeControlType()
+	acc.VolumeControlType.Description = "VolumeControlType"
+	acc.VolumeControlType.SetValue(characteristic.VolumeControlTypeAbsolute)
+	// this breaks things
+	// acc.Speaker.AddCharacteristic(acc.VolumeControlType.Characteristic)
+	acc.VolumeSelector = characteristic.NewVolumeSelector()
+	acc.VolumeSelector.Description = "VolumeSelector"
+	// this break things
+	// acc.Speaker.AddCharacteristic(acc.VolumeSelector.Characteristic)
 
 	acc.VolumeActive = characteristic.NewActive()
 	acc.VolumeActive.Description = "Speaker Active"
@@ -66,10 +62,12 @@ func NewTXNR686(info accessory.Info) *TXNR686 {
 	acc.Speaker.Mute.SetValue(false)
 	acc.Speaker.Primary = false
 	acc.AddService(acc.Speaker.Service)
-	// acc.Television.AddLinkedService(acc.Speaker.Service)
+	// this should be required but breaks things
+	// acc.Television.AddLinkedService(acc.Speaker.Service) // XXX
 
 	acc.Temp.Service.Primary = false
 	acc.AddService(acc.Temp.Service)
+	acc.Television.AddLinkedService(acc.Temp.Service)
 
 	acc.Sources = make(map[int]string)
 
@@ -159,18 +157,18 @@ func (t *TXNR686) AddInputs(nfi *eiscp.NRI) {
 
 		// never triggered?
 		is.CurrentVisibilityState.OnValueRemoteUpdate(func(newstate int) {
-			log.Info.Printf("%s CurrentVisibilityState: %d", is.Name, newstate)
+			log.Info.Printf("%s CurrentVisibilityState: %d", is.Name.GetValue(), newstate)
 		})
 		is.TargetVisibilityState.OnValueRemoteUpdate(func(newstate int) {
-			log.Info.Printf("%s TargetVisibilityState: %d", *is.Name, newstate)
+			log.Info.Printf("%s TargetVisibilityState: %d", is.Name.GetValue(), newstate)
 			is.TargetVisibilityState.SetValue(newstate)  // not saved, but fine for now
 			is.CurrentVisibilityState.SetValue(newstate) // not saved, but fine for now
 		})
 		is.IsConfigured.OnValueRemoteUpdate(func(newstate int) {
-			log.Info.Printf("%s IsConfigured: %d", is.Name, newstate)
+			log.Info.Printf("%s IsConfigured: %d", is.Name.GetValue(), newstate)
 		})
 		is.Identifier.OnValueRemoteUpdate(func(newstate int) {
-			log.Info.Printf("%s Identifier: %d", is.Name, newstate)
+			log.Info.Printf("%s Identifier: %d", is.Name.GetValue(), newstate)
 		})
 	}
 }

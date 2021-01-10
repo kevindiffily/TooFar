@@ -10,6 +10,7 @@ import (
 
 	"github.com/brutella/hc/accessory"
 	"github.com/brutella/hc/log"
+	"github.com/brutella/hc/util"
 	// "github.com/brutella/hc/service"
 	"strconv"
 	"time"
@@ -36,14 +37,20 @@ func (s Platform) Shutdown() platform.Control {
 
 // AddAccessory adds the host senors HC
 func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
+	storage, err := util.NewFileStorage("serials")
+	if err != nil {
+		log.Info.Println("unable to get storage")
+	}
+	serial := util.GetSerialNumberForAccessoryName("LinuxSensors", storage)
+
 	a.Platform = "LinuxSensors"
 	a.Name = "OS Sensors"
 	a.Type = accessory.TypeSensor
 	a.Info.Name = "OS Sensors"
 	a.Info.Manufacturer = "Linux"
 	a.Info.ID = 102
-	a.Info.SerialNumber = "0"
-	a.Info.FirmwareRevision = "0.0.0"
+	a.Info.SerialNumber = serial
+	a.Info.FirmwareRevision = "0.0.1"
 	a.Runner = actionRunner
 
 	nfs, err := gosensors.NewFromSystem()

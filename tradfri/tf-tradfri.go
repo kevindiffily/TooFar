@@ -290,21 +290,42 @@ func runner(a *tfaccessory.TFAccessory, action *action.Action) {
 		target := action.SetTargetBrightness
 
 		// if it is already at the target, set to full-on
-		bv := a.ColoredLightbulb.Lightbulb.Brightness.GetValue()
-		log.Info.Printf("current brightness: %d, target: %d", bv, target)
-		if bv == action.SetTargetBrightness {
-			log.Info.Printf("adjusting target too 99")
-			target = 99
+		if a.ColoredLightbulb != nil {
+			bv := a.ColoredLightbulb.Lightbulb.Brightness.GetValue()
+			log.Info.Printf("current brightness: %d, target: %d", bv, target)
+			if bv == action.SetTargetBrightness {
+				log.Info.Printf("adjusting target too 99")
+				target = 99
+			}
+
+			// update hardware
+			_, err := tradfriClient.PutDeviceDimming(a.Name, target*255/100)
+			if err != nil {
+				log.Info.Println(err.Error())
+			}
+
+			// update GUI
+			a.ColoredLightbulb.Lightbulb.Brightness.SetValue(target)
 		}
 
-		// update hardware
-		_, err := tradfriClient.PutDeviceDimming(a.Name, target*255/100)
-		if err != nil {
-			log.Info.Println(err.Error())
+		if a.TempLightbulb != nil {
+			bv := a.TempLightbulb.Lightbulb.Brightness.GetValue()
+			log.Info.Printf("current brightness: %d, target: %d", bv, target)
+			if bv == action.SetTargetBrightness {
+				log.Info.Printf("adjusting target too 99")
+				target = 99
+			}
+
+			// update hardware
+			_, err := tradfriClient.PutDeviceDimming(a.Name, target*255/100)
+			if err != nil {
+				log.Info.Println(err.Error())
+			}
+
+			// update GUI
+			a.TempLightbulb.Lightbulb.Brightness.SetValue(target)
 		}
 
-		// update GUI
-		a.ColoredLightbulb.Lightbulb.Brightness.SetValue(target)
 	} else {
 		log.Info.Println("switch to using SetBrightness verb")
 		// just toggle

@@ -101,6 +101,8 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	switch settings.Model {
 	case "HS200(US)":
 		a.Type = accessory.TypeSwitch
+	case "HS210(US)":
+		a.Type = accessory.TypeSwitch
 	case "HS220(US)":
 		a.Type = accessory.TypeLightbulb
 	default:

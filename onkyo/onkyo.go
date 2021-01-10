@@ -100,7 +100,7 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		if err != nil {
 			log.Info.Println(err.Error())
 		}
-		log.Info.Printf("set power to: %s", res)
+		log.Info.Printf("set power to: %+v", res.Response)
 	})
 
 	// set initial volume
@@ -115,11 +115,11 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		log.Info.Printf("setting volume to: %d", newstate)
 		dev.Connect()
 		defer dev.Close()
-		res, err := dev.SetVolume(uint8(newstate))
+		vol, err := dev.SetVolume(uint8(newstate))
 		if err != nil {
 			log.Info.Println(err.Error())
 		}
-		log.Info.Printf("set volume to: %d", res)
+		log.Info.Printf("set volume to: %d", vol)
 	})
 
 	mute, err := dev.GetMute()
@@ -133,16 +133,16 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		log.Info.Printf("setting mute to: %t", newstate)
 		dev.Connect()
 		defer dev.Close()
-		res, err := dev.SetMute(newstate)
+		mute, err := dev.SetMute(newstate)
 		if err != nil {
 			log.Info.Println(err.Error())
 		}
-		log.Info.Printf("set mute to: %s", res)
+		log.Info.Printf("set mute to: %t", mute)
 	})
 
-	/* a.TXNR686.VolumeSelector.OnValueRemoteUpdate(func(newstate int) {
-	    log.Info.Printf("set volumeselector: %d", newstate)
-	}) */
+	a.TXNR686.VolumeSelector.OnValueRemoteUpdate(func(newstate int) {
+		log.Info.Printf("set volumeselector: %d", newstate)
+	})
 
 	// set initial temp data
 	cent, err := dev.GetTempData()
@@ -156,14 +156,14 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	a.TXNR686.Temp.CurrentTemperature.SetValue(float64(cint))
 
 	a.TXNR686.Television.ActiveIdentifier.OnValueRemoteUpdate(func(newstate int) {
-		log.Info.Printf("Setting input to %d", newstate)
+		log.Info.Printf("Setting input to %02X", newstate)
 		dev.Connect()
 		defer dev.Close()
 		source, err := dev.SetSourceByCode(newstate)
 		if err != nil {
 			log.Info.Println(err.Error())
 		}
-		log.Info.Printf("set input to %s", source)
+		log.Info.Printf("set input to %+v", source.Response)
 	})
 
 	source, err := dev.GetSource()
@@ -178,7 +178,7 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	/// NPS does not respond if powered off
 	if power && source == eiscp.SrcNetwork {
 		nps, err := dev.GetNetworkPlayStatus()
-		log.Info.Printf("setting CurrentMediaState to: %s", nps)
+		log.Info.Printf("setting CurrentMediaState to: %+v", nps)
 		if err != nil && nps != nil {
 			switch nps.State {
 			case "Play":

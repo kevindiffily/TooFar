@@ -29,6 +29,7 @@ type TFAccessory struct {
 	*hcaccessory.Lightbulb
 	*hcaccessory.Thermometer
 	*hcaccessory.Television
+	*devices.StatelessSwitch
 	*devices.HS220
 	*devices.TXNR686
 	*devices.TempLightbulb

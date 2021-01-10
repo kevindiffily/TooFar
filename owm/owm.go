@@ -11,6 +11,7 @@ import (
 	"github.com/brutella/hc/accessory"
 	"github.com/brutella/hc/log"
 	"github.com/brutella/hc/service"
+	"github.com/brutella/hc/util"
 	"sync"
 	"time"
 )
@@ -41,7 +42,6 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		owms = make(map[string]*tfaccessory.TFAccessory)
 	})
 
-	a.Type = accessory.TypeSensor
 	if a.Info.Name == "" {
 		a.Info.Name = a.Username
 	}
@@ -51,6 +51,15 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	if a.Info.ID == 0 {
 		a.Info.ID = 1341
 	}
+
+	storage, err := util.NewFileStorage("serials")
+	if err != nil {
+		log.Info.Println("unable to get storage")
+	}
+	serial := util.GetSerialNumberForAccessoryName(a.Info.Name, storage)
+	a.Info.SerialNumber = serial
+
+	a.Type = accessory.TypeSensor
 
 	owms[a.Name] = a
 

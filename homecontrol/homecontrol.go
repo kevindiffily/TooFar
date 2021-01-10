@@ -10,6 +10,7 @@ import (
 
 	"github.com/brutella/hc"
 	"github.com/brutella/hc/accessory"
+	"github.com/brutella/hc/util"
 	// "github.com/brutella/hc/characteristic"
 	"github.com/brutella/hc/log"
 	"github.com/brutella/hc/service"
@@ -35,16 +36,25 @@ func (h HCPlatform) Startup(c config.Config) platform.Control {
 
 // StartHC is called after all devices are discovered/registered to start operation
 func StartHC(c config.Config) {
+	storage, err := util.NewFileStorage("serials")
+	if err != nil {
+		log.Info.Println("unable to get storage")
+	}
+	serial := util.GetSerialNumberForAccessoryName("TooFarRoot", storage)
+
+	if c.Name == "" {
+		c.Name = "TooFar"
+	}
 	root := accessory.NewBridge(accessory.Info{
-		Name:             "HA-Root",
+		Name:             c.Name,
 		ID:               1,
-		SerialNumber:     "0000001",
+		SerialNumber:     serial,
 		Manufacturer:     "deviousness",
 		Model:            "TooFar",
-		FirmwareRevision: "0.0.6",
+		FirmwareRevision: "0.0.8",
 	})
 	root.Accessory.OnIdentify(func() {
-		log.Info.Printf("root bridge identify called: %+v", root.Accessory)
+		log.Info.Printf("bridge root identify called: %+v", root.Accessory)
 	})
 
 	// all the other registered things
@@ -53,7 +63,7 @@ func StartHC(c config.Config) {
 		values = append(values, v.Accessory)
 	}
 	config := hc.Config(c.HCConfig)
-	var err error
+	// var err error
 	transport, err := hc.NewIPTransport(config, root.Accessory, values...)
 	if err != nil {
 		log.Info.Panic(err)
@@ -88,6 +98,21 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 			} else {
 				actions := a.MatchActions("Off")
 				runner.RunActions(actions)
+			}
+		})
+	case accessory.TypeProgrammableSwitch:
+		a.StatelessSwitch = devices.NewStatelessSwitch(a.Info)
+		a.Accessory = a.StatelessSwitch.Accessory
+		a.StatelessSwitch.StatelessSwitch.ProgrammableSwitchEvent.SetValue(0)
+		a.Runner = statelessSwitchActionRunner
+		a.StatelessSwitch.StatelessSwitch.ProgrammableSwitchEvent.OnValueRemoteUpdate(func(newval int) {
+			log.Info.Printf("running stateless switch: %d", newval)
+			if newval == 0 {
+				// actions := a.MatchActions("On")
+				// runner.RunActions(actions)
+			} else {
+				// actions := a.MatchActions("Off")
+				// runner.RunActions(actions)
 			}
 		})
 	case accessory.TypeLightbulb:
@@ -167,4 +192,8 @@ func (h HCPlatform) Background() {
 
 func genericSwitchActionRunner(a *tfaccessory.TFAccessory, action *action.Action) {
 	log.Info.Printf("generic switch action runner: %+v %+v", a, action)
+}
+
+func statelessSwitchActionRunner(a *tfaccessory.TFAccessory, action *action.Action) {
+	log.Info.Printf("stateless switch action runner: %+v %+v", a, action)
 }
