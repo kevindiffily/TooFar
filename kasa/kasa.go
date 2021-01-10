@@ -327,6 +327,7 @@ func send(ip string, cmd string) (string, error) {
 		log.Info.Printf("Cannot connnect to device: %s", err.Error())
 		return "", err
 	}
+	defer conn.Close()
 	_, err = conn.Write(payload)
 	if err != nil {
 		log.Info.Printf("Cannot send command to device: %s", err.Error())
