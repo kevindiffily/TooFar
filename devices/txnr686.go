@@ -63,11 +63,12 @@ func NewTXNR686(info accessory.Info) *TXNR686 {
 	acc.Speaker.Primary = false
 	acc.AddService(acc.Speaker.Service)
 	// this should be required but breaks things
-	// acc.Television.AddLinkedService(acc.Speaker.Service) // XXX
+	// acc.Television.AddLinkedService(acc.Speaker.Service) // XXX try this the other way around?
+	acc.Speaker.AddLinkedService(acc.Television.Service)
 
 	acc.Temp.Service.Primary = false
 	acc.AddService(acc.Temp.Service)
-	acc.Television.AddLinkedService(acc.Temp.Service)
+	acc.Television.AddLinkedService(acc.Temp.Service) // does this do anything? it doesn't seem to hurt...
 
 	acc.Sources = make(map[int]string)
 
