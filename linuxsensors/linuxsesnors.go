@@ -78,9 +78,9 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 				} else {
 					log.Info.Printf("setting OS temp to: %f", temp)
 					a.Thermometer.TempSensor.CurrentTemperature.SetValue(temp)
+					// log.Info.Println(k, v)
 				}
 			}
-			log.Info.Println(k, v)
 		}
 	}
 
