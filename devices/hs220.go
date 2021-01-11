@@ -8,8 +8,9 @@ import (
 
 type HS220 struct {
 	*accessory.Accessory
-	Lightbulb *HS220Svc
-	// Switch *service.StatefulProgrammableSwitch
+	Lightbulb          *HS220Svc
+	ProgrammableSwitch *service.StatefulProgrammableSwitch
+	WifiTransport      *service.WifiTransport
 }
 
 func NewHS220(info accessory.Info) *HS220 {
@@ -19,8 +20,19 @@ func NewHS220(info accessory.Info) *HS220 {
 	acc.Lightbulb = NewHS220Svc()
 	acc.AddService(acc.Lightbulb.Service)
 
-	// acc.Switch = service.NewStatefulProgrammableSwitch()
-	// acc.AddService(acc.Switch.Service)
+	acc.ProgrammableSwitch = service.NewStatefulProgrammableSwitch()
+	acc.AddService(acc.ProgrammableSwitch.Service)
+
+	acc.ProgrammableSwitch.ProgrammableSwitchEvent = characteristic.NewProgrammableSwitchEvent()
+	acc.ProgrammableSwitch.ProgrammableSwitchEvent.SetValue(0)
+	acc.ProgrammableSwitch.AddCharacteristic(acc.ProgrammableSwitch.ProgrammableSwitchEvent.Characteristic)
+
+	acc.ProgrammableSwitch.ProgrammableSwitchOutputState = characteristic.NewProgrammableSwitchOutputState()
+	acc.ProgrammableSwitch.AddCharacteristic(acc.ProgrammableSwitch.ProgrammableSwitchOutputState.Characteristic)
+
+	acc.WifiTransport = service.NewWifiTransport()
+	acc.WifiTransport.CurrentTransport.SetValue(true)
+	// acc.AddService(acc.WifiTransport.Service)
 
 	return &acc
 }
@@ -28,10 +40,8 @@ func NewHS220(info accessory.Info) *HS220 {
 type HS220Svc struct {
 	*service.Service
 
-	On                            *characteristic.On
-	Brightness                    *characteristic.Brightness
-	ProgrammableSwitchEvent       *characteristic.ProgrammableSwitchEvent
-	ProgrammableSwitchOutputState *characteristic.ProgrammableSwitchOutputState
+	On         *characteristic.On
+	Brightness *characteristic.Brightness
 }
 
 func NewHS220Svc() *HS220Svc {
@@ -43,13 +53,6 @@ func NewHS220Svc() *HS220Svc {
 
 	svc.Brightness = characteristic.NewBrightness()
 	svc.AddCharacteristic(svc.Brightness.Characteristic)
-
-	svc.ProgrammableSwitchEvent = characteristic.NewProgrammableSwitchEvent()
-	svc.ProgrammableSwitchEvent.SetValue(0)
-	svc.AddCharacteristic(svc.ProgrammableSwitchEvent.Characteristic)
-
-	svc.ProgrammableSwitchOutputState = characteristic.NewProgrammableSwitchOutputState()
-	svc.AddCharacteristic(svc.ProgrammableSwitchOutputState.Characteristic)
 
 	return &svc
 }
