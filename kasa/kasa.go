@@ -16,6 +16,8 @@ import (
 	"time"
 )
 
+// https://www.softscheck.com/en/reverse-engineering-tp-link-hs110/#TP-Link%20Smart%20Home%20Protocol
+
 // Platform is the platform handle for the Kasa stuff
 type Platform struct {
 	Running bool
@@ -83,6 +85,11 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		log.Info.Printf("unable to identify kasa device, skipping: %s", err.Error())
 		return
 	}
+	// tell the Kasa to not use the cloud
+	err = disableCloud(a)
+	if err != nil {
+		log.Info.Printf("did not disable cloud: %s", err.Error())
+	}
 	a.Info.Name = settings.Alias
 	a.Info.SerialNumber = settings.DeviceID
 	a.Info.Manufacturer = "TP-Link"
@@ -123,13 +130,13 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 
 		// install callbacks: if we get an update from HC, deal with it
 		a.Switch.Switch.On.OnValueRemoteUpdate(func(newstate bool) {
-			log.Info.Printf("setting [%s] to [%t] from HC handler", a.Name, newstate)
+			log.Info.Printf("setting [%s] to [%t] from Kasa switch handler", a.Name, newstate)
 			err := setRelayState(a, newstate)
 			if err != nil {
 				log.Info.Println(err.Error())
 				return
 			}
-			ks, err := getSettings(a)
+			/* ks, err := getSettings(a)
 			if err != nil {
 				log.Info.Println(err.Error())
 				return
@@ -137,12 +144,12 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 			if (ks.RelayState > 0) != newstate {
 				log.Info.Printf("unable to update kasa state to %t", newstate)
 				a.Switch.Switch.On.SetValue(ks.RelayState > 0)
-			}
+			} */
 		})
 	}
 	if a.HS220 != nil {
 		a.HS220.Lightbulb.On.SetValue(settings.RelayState > 0)
-		a.HS220.Lightbulb.ProgrammableSwitchOutputState.SetValue(settings.RelayState)
+		a.HS220.ProgrammableSwitch.ProgrammableSwitchOutputState.SetValue(settings.RelayState)
 		a.HS220.Lightbulb.On.OnValueRemoteUpdate(func(newstate bool) {
 			log.Info.Printf("setting [%s] to [%t] from HS220 handler", a.Name, newstate)
 			err := setRelayState(a, newstate)
@@ -150,7 +157,7 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 				log.Info.Println(err.Error())
 				return
 			}
-			ks, err := getSettings(a)
+			/* ks, err := getSettings(a)
 			if err != nil {
 				log.Info.Println(err.Error())
 				return
@@ -159,7 +166,7 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 				log.Info.Printf("unable to update kasa state to %t", newstate)
 				a.HS220.Lightbulb.On.SetValue(ks.RelayState > 0)
 				a.HS220.Lightbulb.ProgrammableSwitchOutputState.SetValue(ks.RelayState)
-			}
+			} */
 		})
 		a.HS220.Lightbulb.Brightness.SetValue(settings.Brightness)
 		a.HS220.Lightbulb.Brightness.OnValueRemoteUpdate(func(newval int) {
@@ -169,7 +176,7 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 				log.Info.Println(err.Error())
 				return
 			}
-			ks, err := getSettings(a)
+			/* ks, err := getSettings(a)
 			if err != nil {
 				log.Info.Println(err.Error())
 				return
@@ -177,21 +184,21 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 			if ks.Brightness != newval {
 				log.Info.Printf("unable to update kasa brightness to %d", newval)
 				a.HS220.Lightbulb.Brightness.SetValue(ks.Brightness)
-			}
+			} */
 		})
-		a.HS220.Lightbulb.ProgrammableSwitchOutputState.OnValueRemoteUpdate(func(newval int) {
+		a.HS220.ProgrammableSwitch.ProgrammableSwitchOutputState.OnValueRemoteUpdate(func(newval int) {
 			log.Info.Printf("setting [%s] to [%d] from HS220 PSOS handler", a.Name, newval)
 			err := setRelayState(a, newval == 1)
 			if err != nil {
 				log.Info.Println(err.Error())
 				return
 			}
-			ks, err := getSettings(a)
+			/* ks, err := getSettings(a)
 			if err != nil {
 				log.Info.Println(err.Error())
 				return
 			}
-			log.Info.Printf("%+v", ks)
+			log.Info.Printf("%+v", ks) */
 		})
 	}
 
@@ -205,7 +212,7 @@ func setRelayState(a *tfaccessory.TFAccessory, newstate bool) error {
 		state = 1
 	}
 	cmd := fmt.Sprintf(`{"system":{"set_relay_state":{"state":%d}}}`, state)
-	_, err := send(a.IP, cmd)
+	err := sendUDP(a.IP, cmd)
 	if err != nil {
 		log.Info.Println(err.Error())
 		return err
@@ -215,7 +222,7 @@ func setRelayState(a *tfaccessory.TFAccessory, newstate bool) error {
 
 func setBrightness(a *tfaccessory.TFAccessory, newval int) error {
 	cmd := fmt.Sprintf(`{"smartlife.iot.dimmer":{"set_brightness":{"brightness":%d}}}`, newval)
-	_, err := send(a.IP, cmd)
+	err := sendUDP(a.IP, cmd)
 	if err != nil {
 		log.Info.Println(err.Error())
 		return err
@@ -247,6 +254,20 @@ func getSettings(a *tfaccessory.TFAccessory) (*kasaSysinfo, error) {
 	return &kd.System.Sysinfo, nil
 }
 
+func disableCloud(a *tfaccessory.TFAccessory) error {
+	err := sendUDP(a.IP, `{"cnCloud":{"unbind":null}}`)
+	if err != nil {
+		log.Info.Println(err.Error())
+		return err
+	}
+	// log.Info.Println(res)
+	return nil
+}
+
+// when I get bored, set myself up as the cloud server... -- make it as responsive as the shellies
+// {"cnCloud":{"set_server_url":{"server":"devs.tplinkcloud.com"}}}
+// {"cnCloud":{"bind":{"username":alice@home.com, "password":"secret"}}}
+
 // Background runs a background Go task verifying HC has the current state of the Kasa devices
 func (k Platform) Background() {
 	// check everything's status every minute
@@ -264,7 +285,7 @@ func (k Platform) backgroundPuller() {
 			log.Info.Println(err.Error())
 			continue
 		}
-		// HS200
+		// HS200 & HS210
 		if a.Switch != nil {
 			if a.Switch.Switch.On.GetValue() != (r.RelayState > 0) {
 				a.Switch.Switch.On.SetValue(r.RelayState > 0)
@@ -274,7 +295,7 @@ func (k Platform) backgroundPuller() {
 		if a.HS220 != nil {
 			if a.HS220.Lightbulb.On.GetValue() != (r.RelayState > 0) {
 				a.HS220.Lightbulb.On.SetValue(r.RelayState > 0)
-				a.HS220.Lightbulb.ProgrammableSwitchOutputState.SetValue(r.RelayState)
+				a.HS220.ProgrammableSwitch.ProgrammableSwitchOutputState.SetValue(r.RelayState)
 			}
 			if a.HS220.Lightbulb.Brightness.GetValue() != r.Brightness {
 				a.HS220.Lightbulb.Brightness.SetValue(r.Brightness)
@@ -287,6 +308,25 @@ func encrypt(plaintext string) []byte {
 	n := len(plaintext)
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.BigEndian, uint32(n))
+	ciphertext := []byte(buf.Bytes())
+
+	key := byte(0xAB)
+	payload := make([]byte, n)
+	for i := 0; i < n; i++ {
+		payload[i] = plaintext[i] ^ key
+		key = payload[i]
+	}
+
+	for i := 0; i < len(payload); i++ {
+		ciphertext = append(ciphertext, payload[i])
+	}
+
+	return ciphertext
+}
+
+func encryptUDP(plaintext string) []byte {
+	n := len(plaintext)
+	buf := new(bytes.Buffer)
 	ciphertext := []byte(buf.Bytes())
 
 	key := byte(0xAB)
@@ -328,6 +368,7 @@ func send(ip string, cmd string) (string, error) {
 		return "", err
 	}
 	defer conn.Close()
+	conn.SetReadDeadline(time.Now().Add(time.Second * 3))
 	_, err = conn.Write(payload)
 	if err != nil {
 		log.Info.Printf("Cannot send command to device: %s", err.Error())
@@ -344,4 +385,24 @@ func send(ip string, cmd string) (string, error) {
 	}
 	result := decrypt(data[4:n]) // start reading at 4, go to total bytes read
 	return result, nil
+}
+
+func sendUDP(ip string, cmd string) error {
+	payload := encryptUDP(cmd)
+	r := net.UDPAddr{
+		IP:   net.ParseIP(ip),
+		Port: 9999,
+	}
+
+	sender, err := net.DialUDP("udp", nil, &r)
+	if err != nil {
+		log.Info.Printf("cannot start UDP sender: %s", err.Error())
+		return err
+	}
+	_, err = sender.Write(payload)
+	if err != nil {
+		log.Info.Printf("cannot send UDP command: %s", err.Error())
+		return err
+	}
+	return nil
 }
