@@ -2,12 +2,12 @@ package kasa
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/hex"
-	"encoding/json"
+	// "encoding/json"
 	"fmt"
 	"github.com/brutella/hc/accessory"
 	"github.com/brutella/hc/log"
+	// "github.com/brutella/hc/util"
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
 	"github.com/cloudkucooland/toofar/config"
 	"github.com/cloudkucooland/toofar/platform"
@@ -17,52 +17,54 @@ import (
 )
 
 // https://www.softscheck.com/en/reverse-engineering-tp-link-hs110/#TP-Link%20Smart%20Home%20Protocol
+// https://medium.com/@hu3vjeen/reverse-engineering-tp-link-kc100-bac4641bf1cd
+// https://machinekoder.com/controlling-tp-link-hs100110-smart-plugs-with-machinekit/
+// https://lib.dr.iastate.edu/cgi/viewcontent.cgi?article=1424&context=creativecomponents
+// https://github.com/p-doyle/Python-KasaSmartPowerStrip
+
+const (
+	cmd_sysinfo     = `{"system":{"get_sysinfo":{}}}`
+	broadcast_sends = 1
+)
+
+var (
+	interfaceIP = "192.168.1.253"
+	broadcastIP = "192.168.1.255"
+)
 
 // Platform is the platform handle for the Kasa stuff
 type Platform struct {
 	Running bool
 }
 
-// defined by kasa devices
-type kasaDevice struct {
-	System kasaSystem `json:"system"`
-}
-
-// defined by kasa devices
-type kasaSystem struct {
-	Sysinfo kasaSysinfo `json:"get_sysinfo"`
-}
-
-// defined by kasa devices
-type kasaSysinfo struct {
-	SWVersion  string `json:"sw_ver"`
-	HWVersion  string `json:"hw_ver"`
-	Model      string `json:"model"`
-	DeviceID   string `json:"deviceId"`
-	OEMID      string `json:"oemId"`
-	HWID       string `json:"hwId"`
-	RSSI       int    `json:"rssi"`
-	Longitude  int    `json:"longitude_i"`
-	Latitude   int    `json:"latitude_i"`
-	Alias      string `json:"alias"`
-	Status     string `json:"status"`
-	MIC        string `json:"mic_type"`
-	Feature    string `json:"feature"`
-	MAC        string `json:"mac"`
-	Updating   int    `json""updating"`
-	LEDOff     int    `json:"led_off"`
-	RelayState int    `json:"relay_state"`
-	Brightness int    `json:"brightness"`
-	OnTime     int    `json:"on_time"`
-	ActiveMode string `json:"active_mode"`
-	DevName    string `json:"dev_name"`
-}
-
 var kasas map[string]*tfaccessory.TFAccessory
 var doOnce sync.Once
+var kasaUDPconn *net.UDPConn
 
 // Startup is called by the platform management to start the platform up
 func (k Platform) Startup(c config.Config) platform.Control {
+	udpl, err := net.ListenUDP("udp", &net.UDPAddr{IP: nil, Port: 9999})
+	if err != nil {
+		fmt.Printf("unable to start UDP listener: %s", err.Error())
+		return k
+	}
+	kasaUDPconn = udpl
+
+	go func() {
+		buffer := make([]byte, 1024)
+		fmt.Println("starting listener")
+		for {
+			n, addr, err := kasaUDPconn.ReadFromUDP(buffer)
+			if err != nil {
+				fmt.Println(err.Error())
+				break
+			}
+			res := decrypt(buffer[0:n])
+			doUDPresponse(addr.IP.String(), res)
+		}
+		return
+	}()
+
 	k.Running = true
 	return k
 }
@@ -80,15 +82,10 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	})
 
 	// pull switch to get a.Info -- override the config file with reality
-	settings, err := getSettings(a)
+	settings, err := getSettingsTCP(a)
 	if err != nil {
 		log.Info.Printf("unable to identify kasa device, skipping: %s", err.Error())
 		return
-	}
-	// tell the Kasa to not use the cloud
-	err = disableCloud(a)
-	if err != nil {
-		log.Info.Printf("did not disable cloud: %s", err.Error())
 	}
 	a.Info.Name = settings.Alias
 	a.Info.SerialNumber = settings.DeviceID
@@ -136,15 +133,6 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 				log.Info.Println(err.Error())
 				return
 			}
-			/* ks, err := getSettings(a)
-			if err != nil {
-				log.Info.Println(err.Error())
-				return
-			}
-			if (ks.RelayState > 0) != newstate {
-				log.Info.Printf("unable to update kasa state to %t", newstate)
-				a.Switch.Switch.On.SetValue(ks.RelayState > 0)
-			} */
 		})
 	}
 	if a.HS220 != nil {
@@ -157,16 +145,6 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 				log.Info.Println(err.Error())
 				return
 			}
-			/* ks, err := getSettings(a)
-			if err != nil {
-				log.Info.Println(err.Error())
-				return
-			}
-			if (ks.RelayState > 0) != newstate {
-				log.Info.Printf("unable to update kasa state to %t", newstate)
-				a.HS220.Lightbulb.On.SetValue(ks.RelayState > 0)
-				a.HS220.Lightbulb.ProgrammableSwitchOutputState.SetValue(ks.RelayState)
-			} */
 		})
 		a.HS220.Lightbulb.Brightness.SetValue(settings.Brightness)
 		a.HS220.Lightbulb.Brightness.OnValueRemoteUpdate(func(newval int) {
@@ -176,15 +154,6 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 				log.Info.Println(err.Error())
 				return
 			}
-			/* ks, err := getSettings(a)
-			if err != nil {
-				log.Info.Println(err.Error())
-				return
-			}
-			if ks.Brightness != newval {
-				log.Info.Printf("unable to update kasa brightness to %d", newval)
-				a.HS220.Lightbulb.Brightness.SetValue(ks.Brightness)
-			} */
 		})
 		a.HS220.ProgrammableSwitch.ProgrammableSwitchOutputState.OnValueRemoteUpdate(func(newval int) {
 			log.Info.Printf("setting [%s] to [%d] from HS220 PSOS handler", a.Name, newval)
@@ -193,20 +162,11 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 				log.Info.Println(err.Error())
 				return
 			}
-			/* ks, err := getSettings(a)
-			if err != nil {
-				log.Info.Println(err.Error())
-				return
-			}
-			log.Info.Printf("%+v", ks) */
 		})
 	}
-
-	// actions
 }
 
 func setRelayState(a *tfaccessory.TFAccessory, newstate bool) error {
-	// log.Info.Printf("setting kasa hardware state for [%s] to [%t]", a.Name, newstate)
 	state := 0
 	if newstate {
 		state = 1
@@ -236,33 +196,34 @@ func (k Platform) GetAccessory(ip string) (*tfaccessory.TFAccessory, bool) {
 	return val, ok
 }
 
-func getSettings(a *tfaccessory.TFAccessory) (*kasaSysinfo, error) {
-	// log.Info.Printf("full kasa pull for [%s]", a.Name)
-	res, err := send(a.IP, `{"system":{"get_sysinfo":null}}`)
-	if err != nil {
-		log.Info.Println(err.Error())
-		return nil, err
-	}
-	// log.Info.Println(res)
-
-	var kd kasaDevice
-	if err = json.Unmarshal([]byte(res), &kd); err != nil {
-		log.Info.Println(err.Error())
-		return nil, err
-	}
-	// log.Info.Printf("%+v", kd.System.Sysinfo)
-	return &kd.System.Sysinfo, nil
+func getSettingBroadcast() error {
+	return broadcastCmd(cmd_sysinfo)
 }
 
-func disableCloud(a *tfaccessory.TFAccessory) error {
-	err := sendUDP(a.IP, `{"cnCloud":{"unbind":null}}`)
+func broadcastCmd(cmd string) error {
+	// look up proper broadcast addresses
+	i := 0
+	for i < broadcast_sends {
+		err := sendUDP(broadcastIP, cmd)
+		if err != nil {
+			log.Info.Println(err.Error())
+			return err
+		}
+		i++
+	}
+	return nil
+}
+
+// tell everyone to forget any cloud settings
+// this belongs in a CLI tool
+/* func disableCloud() error {
+	err := broadcastCmd(`{"cnCloud":{"unbind":null}}`)
 	if err != nil {
 		log.Info.Println(err.Error())
 		return err
 	}
-	// log.Info.Println(res)
 	return nil
-}
+} */
 
 // when I get bored, set myself up as the cloud server... -- make it as responsive as the shellies
 // {"cnCloud":{"set_server_url":{"server":"devs.tplinkcloud.com"}}}
@@ -270,61 +231,15 @@ func disableCloud(a *tfaccessory.TFAccessory) error {
 
 // Background runs a background Go task verifying HC has the current state of the Kasa devices
 func (k Platform) Background() {
-	// check everything's status every minute
+	// check everything's status every minute with UDP we could do this more frequently
 	go func() {
 		for range time.Tick(time.Second * 60) {
-			k.backgroundPuller()
+			getSettingBroadcast()
 		}
 	}()
 }
 
-func (k Platform) backgroundPuller() {
-	for _, a := range kasas {
-		r, err := getSettings(a)
-		if err != nil {
-			log.Info.Println(err.Error())
-			continue
-		}
-		// HS200 & HS210
-		if a.Switch != nil {
-			if a.Switch.Switch.On.GetValue() != (r.RelayState > 0) {
-				a.Switch.Switch.On.SetValue(r.RelayState > 0)
-			}
-		}
-		// HS220
-		if a.HS220 != nil {
-			if a.HS220.Lightbulb.On.GetValue() != (r.RelayState > 0) {
-				a.HS220.Lightbulb.On.SetValue(r.RelayState > 0)
-				a.HS220.ProgrammableSwitch.ProgrammableSwitchOutputState.SetValue(r.RelayState)
-			}
-			if a.HS220.Lightbulb.Brightness.GetValue() != r.Brightness {
-				a.HS220.Lightbulb.Brightness.SetValue(r.Brightness)
-			}
-		}
-	}
-}
-
 func encrypt(plaintext string) []byte {
-	n := len(plaintext)
-	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.BigEndian, uint32(n))
-	ciphertext := []byte(buf.Bytes())
-
-	key := byte(0xAB)
-	payload := make([]byte, n)
-	for i := 0; i < n; i++ {
-		payload[i] = plaintext[i] ^ key
-		key = payload[i]
-	}
-
-	for i := 0; i < len(payload); i++ {
-		ciphertext = append(ciphertext, payload[i])
-	}
-
-	return ciphertext
-}
-
-func encryptUDP(plaintext string) []byte {
 	n := len(plaintext)
 	buf := new(bytes.Buffer)
 	ciphertext := []byte(buf.Bytes())
@@ -355,51 +270,15 @@ func decrypt(ciphertext []byte) string {
 	return string(ciphertext)
 }
 
-func send(ip string, cmd string) (string, error) {
-	payload := encrypt(cmd)
-	r := net.TCPAddr{
-		IP:   net.ParseIP(ip),
-		Port: 9999,
-	}
-
-	conn, err := net.DialTCP("tcp4", nil, &r)
-	if err != nil {
-		log.Info.Printf("Cannot connnect to device: %s", err.Error())
-		return "", err
-	}
-	defer conn.Close()
-	conn.SetReadDeadline(time.Now().Add(time.Second * 3))
-	_, err = conn.Write(payload)
-	if err != nil {
-		log.Info.Printf("Cannot send command to device: %s", err.Error())
-		return "", err
-	}
-
-	// 200's return ~600 bytes, 220's return ~800 bytes; 1k should be enough
-	// see go-eiscp's method for how to improve this
-	data := make([]byte, 1024)
-	n, err := conn.Read(data)
-	if err != nil {
-		log.Info.Println("Cannot read data from device:", err)
-		return "", err
-	}
-	result := decrypt(data[4:n]) // start reading at 4, go to total bytes read
-	return result, nil
-}
-
+// sendUDP sends the command and does not wait for any response.
+// Responses are handled by the listener thread.
 func sendUDP(ip string, cmd string) error {
-	payload := encryptUDP(cmd)
-	r := net.UDPAddr{
-		IP:   net.ParseIP(ip),
-		Port: 9999,
+	if kasaUDPconn == nil {
+		return fmt.Errorf("udp conn not running")
 	}
 
-	sender, err := net.DialUDP("udp", nil, &r)
-	if err != nil {
-		log.Info.Printf("cannot start UDP sender: %s", err.Error())
-		return err
-	}
-	_, err = sender.Write(payload)
+	payload := encrypt(cmd)
+	_, err := kasaUDPconn.WriteToUDP(payload, &net.UDPAddr{IP: net.ParseIP(ip), Port: 9999})
 	if err != nil {
 		log.Info.Printf("cannot send UDP command: %s", err.Error())
 		return err
