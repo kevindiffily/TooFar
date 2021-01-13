@@ -27,7 +27,7 @@ This is not really a general purpose bridge, it is what I need for my setup. I'm
     * Support for OpenWeatherMap data -- potentially acting on weather conditions
 
 # To Do:
-    * Auto-discovery of Kasa switches, manual config is easy enough to make this low priority
+    * Auto-discovery of Kasa switches (getting close)
     * Auto-discovery of Shelly relays, manual config is easy enough to make this low priority
     * Support Sony Blu-Ray player -- not really a priority since HDMI-CEC gets the job done
     * Support Samsung TV -- not really a priority since HDMI-CEC gets the job done

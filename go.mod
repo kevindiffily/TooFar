@@ -22,8 +22,8 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	github.com/ssimunic/gosensors v0.0.0-20170414000417-e7ab9a4e799b
 	github.com/urfave/cli/v2 v2.3.0
-	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9 // indirect
-	google.golang.org/genproto v0.0.0-20210111173611-c7d5778d165c // indirect
+	golang.org/x/sys v0.0.0-20210113131315-ba0562f347e0 // indirect
+	google.golang.org/genproto v0.0.0-20210113155445-facbc42f5e06 // indirect
 	google.golang.org/grpc v1.34.1 // indirect
 	k8s.io/apimachinery v0.20.1 // indirect
 )
