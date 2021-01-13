@@ -6,10 +6,22 @@ import (
 
 // Config is the primary daemon configuration...
 type Config struct {
-	ConfigDir   string    // passed in from CLI
-	ConfigFile  string    // server.json
-	HTTPAddress string    // net.Dial address format, :port is good enough
-	Name        string    // what this bridge shows as
-	ID          string    // displayed serial number
-	HCConfig    hc.Config // base HomeControl configuration
+	ConfigDir    string    // passed in from CLI
+	ConfigFile   string    // server.json
+	HTTPAddress  string    // net.Dial address format, :port is good enough
+	Name         string    // what this bridge shows as
+	ID           string    // displayed serial number
+	HCConfig     hc.Config // base HomeControl configuration
+	Discover     bool      // run Kasa & Shelly auto-discovery at startup
+	KasaPullRate int       // (seconds) how frequently to pull Kasa devices -- 0 to disable
+}
+
+var runningConfig *Config
+
+func Get() *Config {
+	return runningConfig
+}
+
+func Set(c *Config) {
+	runningConfig = c
 }

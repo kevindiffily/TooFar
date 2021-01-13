@@ -40,7 +40,7 @@ var tradfriClient *Client
 var doOnceTradfri sync.Once
 
 // Startup is called by the platform management to start things up
-func (tp Platform) Startup(c config.Config) platform.Control {
+func (tp Platform) Startup(c *config.Config) platform.Control {
 	tp.Running = true
 	return tp
 }
@@ -361,7 +361,7 @@ func (tdp DevicePlatform) GetAccessory(name string) (*tfaccessory.TFAccessory, b
 }
 
 // Startup the TradfriDevicePlatform -- never actually called
-func (tdp DevicePlatform) Startup(c config.Config) platform.Control {
+func (tdp DevicePlatform) Startup(c *config.Config) platform.Control {
 	tdp.Running = true
 	return tdp
 }

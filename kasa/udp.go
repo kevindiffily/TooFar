@@ -4,11 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/brutella/hc/log"
+	tfaccessory "github.com/cloudkucooland/toofar/accessory"
+	"github.com/cloudkucooland/toofar/config"
 	"github.com/cloudkucooland/toofar/platform"
 	"strings"
 )
 
 func doUDPresponse(ip, res string) {
+	if res == cmd_sysinfo {
+		// no need to log our own broadcasts
+		return
+	}
+
 	k, ok := platform.GetPlatform("Kasa")
 	if !ok {
 		log.Info.Println("no kasa platform?")
@@ -16,11 +23,12 @@ func doUDPresponse(ip, res string) {
 	}
 	a, ok := k.GetAccessory(ip)
 	if !ok {
-		if res == cmd_sysinfo {
-			// no need to log our own broadcasts
+		if !config.Get().Discover {
 			return
 		}
-		log.Info.Printf("reply from unknown device: [%s] %s", ip, res)
+		log.Info.Printf("adding previously unknown device: %s", ip)
+		a := &tfaccessory.TFAccessory{Platform: "Kasa", IP: ip}
+		k.AddAccessory(a)
 		return
 	}
 
@@ -54,12 +62,12 @@ func doUDPresponse(ip, res string) {
 	}
 
 	if res == `{"system":{"set_relay_state":{"err_code":0}}}` {
-		log.Info.Println("[%s] relay state changed", a.Name)
+		log.Info.Printf("[%s] relay state changed", a.Name)
 		return
 	}
 
 	if res == `{"smartlife.iot.dimmer":{"set_brightness":{"err_code":0}}}` {
-		log.Info.Println("[%s] brightness changed", a.Name)
+		log.Info.Printf("[%s] brightness changed", a.Name)
 		return
 	}
 

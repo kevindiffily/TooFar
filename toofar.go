@@ -14,13 +14,16 @@ import (
 	"github.com/cloudkucooland/toofar/shelly"
 	"github.com/cloudkucooland/toofar/tfhttp"
 	"github.com/cloudkucooland/toofar/tradfri"
+	"time"
 
 	"github.com/brutella/hc/log"
 )
 
 // BootstrapPlatforms sets up all the platforms
 // hardcode this until I can spend the time to make it dynamic
-func BootstrapPlatforms(c config.Config) {
+func BootstrapPlatforms(c *config.Config) {
+	config.Set(c)
+
 	var h tfhttp.Platform
 	platform.RegisterPlatform("HTTP", h)
 
@@ -53,6 +56,14 @@ func BootstrapPlatforms(c config.Config) {
 	// add a sensor
 	sensor := accessory.TFAccessory{}
 	ls.AddAccessory(&sensor)
+
+	// auto-discover Kasa devices
+	if c.Discover {
+		kp.Discover() // UDP probe for Kasa devices
+		// s.Discover() // TBD shelly discovery
+		// wait a bit for discovery to complete -- otherwise HCStart runs before all devices are found
+		time.Sleep(time.Second * 2)
+	}
 }
 
 // AddAccessory is a wrapper to each platform's AddAccessory, no need to expose each platform to the daemon
@@ -75,6 +86,6 @@ func AddAccessory(h *accessory.TFAccessory) error {
 }
 
 // StartHC is just a wrapper, no need to expose tfhc to the daemon
-func StartHC(c config.Config) {
-	tfhc.StartHC(c)
+func StartHC() {
+	tfhc.StartHC()
 }

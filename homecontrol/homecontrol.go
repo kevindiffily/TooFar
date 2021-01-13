@@ -26,7 +26,7 @@ var doOnceHC sync.Once
 var hcs map[string]*tfaccessory.TFAccessory
 
 // Startup is called by the platform bootstrap
-func (h HCPlatform) Startup(c config.Config) platform.Control {
+func (h HCPlatform) Startup(c *config.Config) platform.Control {
 	doOnceHC.Do(func() {
 		hcs = make(map[string]*tfaccessory.TFAccessory)
 		h.Running = true
@@ -35,7 +35,8 @@ func (h HCPlatform) Startup(c config.Config) platform.Control {
 }
 
 // StartHC is called after all devices are discovered/registered to start operation
-func StartHC(c config.Config) {
+func StartHC() {
+	c := config.Get()
 	storage, err := util.NewFileStorage("serials")
 	if err != nil {
 		log.Info.Println("unable to get storage")
@@ -51,7 +52,7 @@ func StartHC(c config.Config) {
 		SerialNumber:     serial,
 		Manufacturer:     "deviousness",
 		Model:            "TooFar",
-		FirmwareRevision: "0.0.8",
+		FirmwareRevision: "0.0.9",
 	})
 	root.Accessory.OnIdentify(func() {
 		log.Info.Printf("bridge root identify called: %+v", root.Accessory)
@@ -73,7 +74,8 @@ func StartHC(c config.Config) {
 		<-transport.Stop()
 	})
 	go transport.Start()
-	// log.Info.Println(transport.XHMURI())
+	uri, _ := transport.XHMURI()
+	log.Info.Printf("add this bridge with: %s", uri)
 }
 
 // Shutdown is called at process teardown

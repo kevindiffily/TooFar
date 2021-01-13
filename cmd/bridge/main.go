@@ -39,10 +39,6 @@ func main() {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			// log.Debug.Enable()
-			// log.Info.Printf("config dir: %s", dir)
-			// log.Info.Printf("config file: %s", file)
-
 			fulldir, err := filepath.Abs(dir)
 			if err != nil {
 				log.Info.Panic("unable to get config directory", dir)
@@ -68,7 +64,7 @@ func main() {
 			conf.ConfigFile = cfd
 
 			// spin up platforms to listen to devices
-			toofar.BootstrapPlatforms(conf)
+			toofar.BootstrapPlatforms(&conf)
 
 			// load accessory configs
 			var accdir = filepath.Join(fulldir, "accessories")
@@ -86,7 +82,7 @@ func main() {
 			}
 
 			// HC can only be started once all accessories are known
-			toofar.StartHC(conf)
+			toofar.StartHC()
 
 			// run all the background processes
 			platform.Background()

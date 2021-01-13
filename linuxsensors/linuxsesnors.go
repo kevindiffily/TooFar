@@ -24,7 +24,7 @@ type Platform struct {
 }
 
 // Startup is called by the platform management to get things going
-func (s Platform) Startup(c config.Config) platform.Control {
+func (s Platform) Startup(c *config.Config) platform.Control {
 	s.Running = true
 	return s
 }

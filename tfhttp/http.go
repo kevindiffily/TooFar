@@ -23,7 +23,7 @@ type Platform struct {
 var srv http.Server
 
 // Startup is called by the platform management to get things running
-func (h Platform) Startup(c config.Config) platform.Control {
+func (h Platform) Startup(c *config.Config) platform.Control {
 	// each platform should register its own routes
 	r := mux.NewRouter()
 	r.HandleFunc("/", homeHandler)

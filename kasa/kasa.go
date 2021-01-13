@@ -37,12 +37,17 @@ type Platform struct {
 	Running bool
 }
 
-var kasas map[string]*tfaccessory.TFAccessory
+type kmu struct {
+	mu sync.Mutex
+	ks map[string]*tfaccessory.TFAccessory
+}
+
+var kasas kmu
 var doOnce sync.Once
 var kasaUDPconn *net.UDPConn
 
 // Startup is called by the platform management to start the platform up
-func (k Platform) Startup(c config.Config) platform.Control {
+func (k Platform) Startup(c *config.Config) platform.Control {
 	udpl, err := net.ListenUDP("udp", &net.UDPAddr{IP: nil, Port: 9999})
 	if err != nil {
 		fmt.Printf("unable to start UDP listener: %s", err.Error())
@@ -78,10 +83,24 @@ func (k Platform) Shutdown() platform.Control {
 // AddAccessory adds a Kasa device, pulls it for info, then adds it to HC
 func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	doOnce.Do(func() {
-		kasas = make(map[string]*tfaccessory.TFAccessory)
+		kasas.mu.Lock()
+		kasas.ks = make(map[string]*tfaccessory.TFAccessory)
+		kasas.mu.Unlock()
 	})
 
-	// pull switch to get a.Info -- override the config file with reality
+	hc, ok := platform.GetPlatform("HomeControl")
+	if !ok {
+		log.Info.Println("can't add accessory, HomeControl platform does not yet exist")
+		return
+	}
+
+	_, ok = k.GetAccessory(a.IP)
+	if ok {
+		log.Info.Println("already have a device with this IP address: %s", a.IP)
+		return
+	}
+
+	// override the config file with reality
 	settings, err := getSettingsTCP(a)
 	if err != nil {
 		log.Info.Printf("unable to identify kasa device, skipping: %s", err.Error())
@@ -115,11 +134,12 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 
 	log.Info.Printf("adding [%s]: [%s]", a.Info.Name, a.Info.Model)
 	// add to HC for GUI
-	h, _ := platform.GetPlatform("HomeControl")
-	h.AddAccessory(a)
+	hc.AddAccessory(a)
 
 	// kasas are indexed by IP address
-	kasas[a.IP] = a
+	kasas.mu.Lock()
+	kasas.ks[a.IP] = a
+	kasas.mu.Unlock()
 
 	if a.Switch != nil {
 		// startup value
@@ -192,8 +212,14 @@ func setBrightness(a *tfaccessory.TFAccessory, newval int) error {
 
 // GetAccessory looks up a Kasa device by IP address
 func (k Platform) GetAccessory(ip string) (*tfaccessory.TFAccessory, bool) {
-	val, ok := kasas[ip]
+	kasas.mu.Lock()
+	val, ok := kasas.ks[ip]
+	kasas.mu.Unlock()
 	return val, ok
+}
+
+func (k Platform) Discover() error {
+	return broadcastCmd(cmd_sysinfo)
 }
 
 func getSettingBroadcast() error {
@@ -201,39 +227,26 @@ func getSettingBroadcast() error {
 }
 
 func broadcastCmd(cmd string) error {
-	// look up proper broadcast addresses
-	i := 0
-	for i < broadcast_sends {
+	// TODO look up proper broadcast addresses
+	for i := 0; i < broadcast_sends; i++ {
 		err := sendUDP(broadcastIP, cmd)
 		if err != nil {
 			log.Info.Println(err.Error())
 			return err
 		}
-		i++
 	}
 	return nil
 }
 
-// tell everyone to forget any cloud settings
-// this belongs in a CLI tool
-/* func disableCloud() error {
-	err := broadcastCmd(`{"cnCloud":{"unbind":null}}`)
-	if err != nil {
-		log.Info.Println(err.Error())
-		return err
-	}
-	return nil
-} */
-
-// when I get bored, set myself up as the cloud server... -- make it as responsive as the shellies
-// {"cnCloud":{"set_server_url":{"server":"devs.tplinkcloud.com"}}}
-// {"cnCloud":{"bind":{"username":alice@home.com, "password":"secret"}}}
-
 // Background runs a background Go task verifying HC has the current state of the Kasa devices
 func (k Platform) Background() {
-	// check everything's status every minute with UDP we could do this more frequently
+	kpr := config.Get().KasaPullRate
+	if kpr == 0 {
+		log.Info.Println("KasaPullRate is 0, disabling checks")
+		return
+	}
 	go func() {
-		for range time.Tick(time.Second * 60) {
+		for range time.Tick(time.Second * time.Duration(kpr)) {
 			getSettingBroadcast()
 		}
 	}()

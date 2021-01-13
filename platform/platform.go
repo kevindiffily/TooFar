@@ -10,7 +10,7 @@ import (
 
 // Control is the interface which all platforms must satisfy
 type Control interface {
-	Startup(config.Config) Control
+	Startup(*config.Config) Control
 	Background()
 	Shutdown() Control
 	AddAccessory(*accessory.TFAccessory)
@@ -50,7 +50,7 @@ func ShutdownAllPlatforms() {
 }
 
 // StartupAllPlatforms is called at process start to initialize all platforms
-func StartupAllPlatforms(c config.Config) {
+func StartupAllPlatforms(c *config.Config) {
 	for name, platform := range platforms {
 		// log.Info.Printf("Starting up: %s", name)
 		platforms[name] = platform.Startup(c)

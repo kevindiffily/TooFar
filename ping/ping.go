@@ -31,7 +31,7 @@ var devices map[string]*tfaccessory.TFAccessory
 var doOnce sync.Once
 
 // Startup is called by the platform management to start the platform up
-func (p Platform) Startup(c config.Config) platform.Control {
+func (p Platform) Startup(c *config.Config) platform.Control {
 	p.Running = true
 	return p
 }

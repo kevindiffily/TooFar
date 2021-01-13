@@ -25,7 +25,7 @@ var owms map[string]*tfaccessory.TFAccessory
 var doOnce sync.Once
 
 // Startup is called by the platform management to get things going
-func (o Platform) Startup(c config.Config) platform.Control {
+func (o Platform) Startup(c *config.Config) platform.Control {
 	o.Running = true
 	return o
 }
