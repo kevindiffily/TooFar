@@ -6,12 +6,15 @@ import (
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
 	"github.com/cloudkucooland/toofar/action"
 	"github.com/cloudkucooland/toofar/config"
+	"github.com/cloudkucooland/toofar/devices"
 	"github.com/cloudkucooland/toofar/platform"
 
+	"fmt"
 	"github.com/brutella/hc/accessory"
+	"github.com/brutella/hc/characteristic"
 	"github.com/brutella/hc/log"
+	"github.com/brutella/hc/service"
 	"github.com/brutella/hc/util"
-	// "github.com/brutella/hc/service"
 	"strconv"
 	"time"
 )
@@ -47,10 +50,11 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	a.Name = "OS Sensors"
 	a.Type = accessory.TypeSensor
 	a.Info.Name = "OS Sensors"
+	a.Info.Model = "OS Sensors"
 	a.Info.Manufacturer = "Linux"
-	a.Info.ID = 102
+	a.Info.ID = 103
 	a.Info.SerialNumber = serial
-	a.Info.FirmwareRevision = "0.0.1"
+	a.Info.FirmwareRevision = "0.0.3"
 	a.Runner = actionRunner
 
 	nfs, err := gosensors.NewFromSystem()
@@ -62,23 +66,32 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	// add to HC for GUI
 	h, _ := platform.GetPlatform("HomeControl")
 	h.AddAccessory(a)
-	if a.Thermometer == nil || a.Thermometer.TempSensor == nil {
-		log.Info.Println("unable to create sensor type")
+	if a.LinuxSensors == nil {
+		log.Info.Println("unable to create LinuxSensors type")
 		return
 	}
-	a.Thermometer.TempSensor.CurrentTemperature.Description = "CurrentTemperature"
-	a.Thermometer.TempSensor.Primary = true
 
+	noprimary := true
 	for chip := range nfs.Chips {
+		scv := make(devices.SensorChipValues)
+		a.LinuxSensors.Chips[chip] = &scv
 		for k, v := range nfs.Chips[chip] {
-			if k == "temp1" {
+			if k == "temp1" { // change this to a switch, handle fans and other temps as well
+				scv[k] = service.NewTemperatureSensor()
+				name := characteristic.NewName()
+				scv[k].AddCharacteristic(name.Characteristic)
+				name.SetValue(fmt.Sprintf("%s/%s", chip, k))
+				a.LinuxSensors.AddService(scv[k].Service)
+				if noprimary {
+					scv[k].Primary = true
+					noprimary = false
+				}
 				temp, err := strconv.ParseFloat(v[1:5], 64)
 				if err != nil {
 					log.Info.Println(err)
 				} else {
-					log.Info.Printf("setting OS temp to: %f", temp)
-					a.Thermometer.TempSensor.CurrentTemperature.SetValue(temp)
-					// log.Info.Println(k, v)
+					log.Info.Printf("setting %s/%s temp to: %f", chip, k, temp)
+					scv[k].CurrentTemperature.SetValue(temp)
 				}
 			}
 		}
@@ -111,14 +124,19 @@ func (s Platform) backgroundPuller() {
 		log.Info.Println(err)
 		return
 	}
+	a, _ := s.GetAccessory("OS Sensors")
 	for chip := range nfs.Chips {
 		for k, v := range nfs.Chips[chip] {
-			if k == "temp1" {
-				sensors.Thermometer.TempSensor.CurrentTemperature.Description = "CurrentTemperature"
-				temp, _ := strconv.ParseFloat(v[1:5], 64)
-				if temp != sensors.Thermometer.TempSensor.CurrentTemperature.GetValue() {
-					// log.Info.Printf("setting OS temp to: %f", temp)
-					sensors.Thermometer.TempSensor.CurrentTemperature.SetValue(temp)
+			if k == "temp1" { // switch, handle various types...
+				temp, err := strconv.ParseFloat(v[1:5], 64)
+				if err != nil {
+					log.Info.Println(err)
+				} else {
+					log.Info.Printf("setting %s/%s temp to: %f", chip, k, temp)
+					s, ok := a.LinuxSensors.Chips[chip]
+					if ok {
+						(*s)[k].CurrentTemperature.SetValue(temp)
+					}
 				}
 			}
 		}

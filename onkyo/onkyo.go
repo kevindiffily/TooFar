@@ -7,8 +7,6 @@ import (
 	"github.com/cloudkucooland/toofar/config"
 	"github.com/cloudkucooland/toofar/platform"
 
-	// "fmt"
-	// "strings"
 	"github.com/brutella/hc/accessory"
 	"github.com/brutella/hc/characteristic"
 	"github.com/brutella/hc/log"
@@ -45,7 +43,6 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 
 	a.Type = accessory.TypeTelevision
 
-	// host := fmt.Sprintf("%s", a.IP)
 	dev, err := eiscp.NewReceiver(a.IP)
 	if err != nil {
 		log.Info.Printf(err.Error())
@@ -354,12 +351,6 @@ func (o Platform) backgroundPuller() {
 			return
 		}
 		defer dev.Close()
-		/* deets, err := dev.GetDetails()
-		if err != nil {
-			log.Info.Printf("unable to pull for details: %s", err.Error())
-			return
-		}
-		log.Info.Printf("%+v", deets) */
 
 		power, err := dev.GetPower()
 		if err != nil {

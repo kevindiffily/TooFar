@@ -137,8 +137,14 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 			a.Accessory = a.Lightbulb.Accessory
 		}
 	case accessory.TypeSensor:
-		a.Thermometer = accessory.NewTemperatureSensor(a.Info, 20, -10, 45, 1)
-		a.Accessory = a.Thermometer.Accessory
+		switch a.Info.Model {
+		case "OS Sensors":
+			a.LinuxSensors = devices.NewLinuxSensors(a.Info)
+			a.Accessory = a.LinuxSensors.Accessory
+		default:
+			a.Thermometer = accessory.NewTemperatureSensor(a.Info, 20, -10, 45, 1)
+			a.Accessory = a.Thermometer.Accessory
+		}
 	case accessory.TypeSecuritySystem:
 		a.Accessory = accessory.New(a.Info, a.Type)
 	case accessory.TypeTelevision:

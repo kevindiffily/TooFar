@@ -63,8 +63,8 @@ func NewTXNR686(info accessory.Info) *TXNR686 {
 	acc.Speaker.Primary = false
 	acc.AddService(acc.Speaker.Service)
 	// this should be required but breaks things
-	// acc.Television.AddLinkedService(acc.Speaker.Service) // XXX try this the other way around?
-	acc.Speaker.AddLinkedService(acc.Television.Service)
+	// acc.Television.AddLinkedService(acc.Speaker.Service) // breaks
+	acc.Speaker.AddLinkedService(acc.Television.Service) // does not break
 
 	acc.Temp.Service.Primary = false
 	acc.AddService(acc.Temp.Service)
@@ -286,16 +286,3 @@ func NewTXNR686Svc() *TXNR686Svc {
 
 	return &svc
 }
-
-/*
-func (t *TXNR686) UpdateTemp() {
-	cent, err := dev.GetTempData()
-	if err != nil {
-		log.Info.Println(err.Error())
-	}
-	cint, err := strconv.Atoi(cent)
-	if err != nil {
-		cint = 20
-	}
-	t.Temp.CurrentTemperature.SetValue(float64(cint))
-} */

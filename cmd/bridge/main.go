@@ -20,6 +20,7 @@ import (
 
 func main() {
 	var dir, file string
+	var debug bool
 
 	app := cli.App{
 		Name:  "scot's home automation server",
@@ -37,8 +38,18 @@ func main() {
 				Usage:       "configuration file",
 				Destination: &file,
 			},
+			&cli.BoolFlag{
+				Name:        "debug",
+				Value:       false,
+				Usage:       "enable debug",
+				Destination: &debug,
+			},
 		},
 		Action: func(c *cli.Context) error {
+			if debug {
+				log.Debug.Enable()
+			}
+
 			fulldir, err := filepath.Abs(dir)
 			if err != nil {
 				log.Info.Panic("unable to get config directory", dir)
