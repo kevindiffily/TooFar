@@ -99,10 +99,18 @@ type Platform struct {
 
 var shellies map[string]*tfaccessory.TFAccessory
 var doOnceShelly sync.Once
+var client *http.Client
 
 // Startup is called by the platform management to get things going
 func (s Platform) Startup(c *config.Config) platform.Control {
 	s.Running = true
+
+	// these values are aggressive, probably not good for sites with lots of shellies
+	tr := &http.Transport{
+		MaxIdleConns:    5,
+		IdleConnTimeout: 10 * time.Second,
+	}
+	client = &http.Client{Transport: tr, Timeout: time.Second * 5}
 	return s
 }
 
@@ -178,11 +186,6 @@ func updateHCGUI(a *tfaccessory.TFAccessory, newstate bool) {
 }
 
 func doRequest(a *tfaccessory.TFAccessory, method, url string) (*[]byte, error) {
-	tr := &http.Transport{
-		MaxIdleConns:    2,
-		IdleConnTimeout: 5 * time.Second,
-	}
-	client := &http.Client{Transport: tr, Timeout: time.Second * 3}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
