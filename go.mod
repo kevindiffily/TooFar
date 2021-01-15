@@ -22,10 +22,10 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	github.com/ssimunic/gosensors v0.0.0-20170414000417-e7ab9a4e799b
 	github.com/urfave/cli/v2 v2.3.0
-	golang.org/x/sys v0.0.0-20210113131315-ba0562f347e0 // indirect
-	google.golang.org/genproto v0.0.0-20210113155445-facbc42f5e06 // indirect
-	google.golang.org/grpc v1.34.1 // indirect
-	k8s.io/apimachinery v0.20.1 // indirect
+	golang.org/x/sys v0.0.0-20210113181707-4bcb84eeeb78 // indirect
+	google.golang.org/genproto v0.0.0-20210114201628-6edceaf6022f // indirect
+	google.golang.org/grpc v1.35.0 // indirect
+	k8s.io/apimachinery v0.20.2 // indirect
 )
 
 replace github.com/cloudkucooland/go-eiscp => ../go-eiscp

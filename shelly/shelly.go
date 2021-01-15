@@ -123,7 +123,7 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	// pull shelly to get a.Info -- override the config file with reality
 	settings, err := getSettings(a)
 	if err != nil {
-		log.Info.Print("unable to identify Shelly Device: %s", err.Error())
+		log.Info.Printf("unable to identify Shelly Device: %s", err.Error())
 		return
 	}
 	a.Info.Name = settings.Name
@@ -177,16 +177,13 @@ func updateHCGUI(a *tfaccessory.TFAccessory, newstate bool) {
 	}
 }
 
-func setState(a *tfaccessory.TFAccessory, newstate bool) (*shellyRelay, error) {
-	client := &http.Client{}
-
-	grr := "off"
-	if newstate {
-		grr = "on"
+func doRequest(a *tfaccessory.TFAccessory, method, url string) (*[]byte, error) {
+	tr := &http.Transport{
+		MaxIdleConns:    2,
+		IdleConnTimeout: 5 * time.Second,
 	}
-	log.Info.Printf("setting Shelly hardware [%s] to: %s", a.Name, grr)
-	relayurl := fmt.Sprintf("http://%s/relay/0?turn=%s", a.IP, grr)
-	req, err := http.NewRequest("GET", relayurl, nil)
+	client := &http.Client{Transport: tr, Timeout: time.Second * 3}
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -201,35 +198,35 @@ func setState(a *tfaccessory.TFAccessory, newstate bool) (*shellyRelay, error) {
 		log.Info.Println(err.Error())
 		return nil, err
 	}
+	return &body, nil
+}
 
+func setState(a *tfaccessory.TFAccessory, newstate bool) (*shellyRelay, error) {
+	grr := "off"
+	if newstate {
+		grr = "on"
+	}
+	log.Info.Printf("setting Shelly hardware [%s] to: %s", a.Name, grr)
+	relayurl := fmt.Sprintf("http://%s/relay/0?turn=%s", a.IP, grr)
+	body, err := doRequest(a, "GET", relayurl)
+	if err != nil {
+		return nil, err
+	}
 	var r shellyRelay
-	if err := json.Unmarshal(body, &r); err != nil {
+	if err := json.Unmarshal(*body, &r); err != nil {
 		return nil, err
 	}
 	return &r, nil
 }
 
 func getState(a *tfaccessory.TFAccessory) (*shellyRelay, error) {
-	client := &http.Client{}
-
 	url := fmt.Sprintf("http://%s/relay/0", a.IP)
-	req, err := http.NewRequest("GET", url, nil)
+	body, err := doRequest(a, "GET", url)
 	if err != nil {
 		return nil, err
 	}
-	req.SetBasicAuth(a.Username, a.Password)
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
 	var r shellyRelay
-	if err := json.Unmarshal(body, &r); err != nil {
+	if err := json.Unmarshal(*body, &r); err != nil {
 		return nil, err
 	}
 	return &r, nil
@@ -242,27 +239,13 @@ func (s Platform) GetAccessory(ip string) (*tfaccessory.TFAccessory, bool) {
 }
 
 func getSettings(a *tfaccessory.TFAccessory) (*settings, error) {
-	client := &http.Client{}
-
 	url := fmt.Sprintf("http://%s/settings", a.IP)
-	req, err := http.NewRequest("GET", url, nil)
+	body, err := doRequest(a, "GET", url)
 	if err != nil {
 		return nil, err
 	}
-	req.SetBasicAuth(a.Username, a.Password)
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	// log.Info.Printf("%+v", string(body))
-
 	var sd settings
-	if err := json.Unmarshal(body, &sd); err != nil {
+	if err := json.Unmarshal(*body, &sd); err != nil {
 		return nil, err
 	}
 	return &sd, nil

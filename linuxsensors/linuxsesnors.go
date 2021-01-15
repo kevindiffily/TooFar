@@ -90,7 +90,7 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 				if err != nil {
 					log.Info.Println(err)
 				} else {
-					log.Info.Printf("setting %s/%s temp to: %f", chip, k, temp)
+					// log.Info.Printf("setting %s/%s temp to: %f", chip, k, temp)
 					scv[k].CurrentTemperature.SetValue(temp)
 				}
 			}
@@ -132,7 +132,7 @@ func (s Platform) backgroundPuller() {
 				if err != nil {
 					log.Info.Println(err)
 				} else {
-					log.Info.Printf("setting %s/%s temp to: %f", chip, k, temp)
+					// log.Info.Printf("setting %s/%s temp to: %f", chip, k, temp)
 					s, ok := a.LinuxSensors.Chips[chip]
 					if ok {
 						(*s)[k].CurrentTemperature.SetValue(temp)

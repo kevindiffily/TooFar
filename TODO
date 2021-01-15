@@ -1,3 +1,5 @@
-sensors (weather reporting) -- basically done
-Onkyo support (some in place, had to write most of an eiscp library to do it, much work left to do)
+Fix Kasa discovery (adding discovered devices) -- would it be possible to move to my go-kasa library now?
+Improve LinuxSensors to support fans and other sensors
+Add Shelly discovery (once Kasa discovery is fixed)
+Figure out and add support for WifiCapabilities
 
