@@ -28,7 +28,6 @@ const (
 )
 
 var (
-	interfaceIP = "192.168.1.253"
 	broadcastIP = "192.168.1.255"
 )
 

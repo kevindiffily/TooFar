@@ -44,6 +44,7 @@ func doUDPresponse(ip, res string) {
 		// HS200 / HS210
 		if a.Switch != nil {
 			if a.Switch.Switch.On.GetValue() != (r.RelayState > 0) {
+				log.Info.Printf("updating HomeKit: %s relay %d\n", a.IP, r.RelayState)
 				a.Switch.Switch.On.SetValue(r.RelayState > 0)
 			}
 		}
@@ -51,16 +52,19 @@ func doUDPresponse(ip, res string) {
 		// HS220
 		if a.HS220 != nil {
 			if a.HS220.Lightbulb.On.GetValue() != (r.RelayState > 0) {
+				log.Info.Printf("updating HomeKit: %s relay %d", a.IP, r.RelayState)
 				a.HS220.Lightbulb.On.SetValue(r.RelayState > 0)
 				a.HS220.ProgrammableSwitch.ProgrammableSwitchOutputState.SetValue(r.RelayState)
 			}
 			if a.HS220.Lightbulb.Brightness.GetValue() != r.Brightness {
+				log.Info.Printf("updating HomeKit: %s brightness %d", a.IP, r.RelayState)
 				a.HS220.Lightbulb.Brightness.SetValue(r.Brightness)
 			}
 		}
 		return
 	}
 
+	// we should never see these, I was manually riggering them during testing
 	if res == `{"system":{"set_relay_state":{"err_code":0}}}` {
 		log.Info.Printf("[%s] relay state changed", a.Name)
 		return
@@ -71,5 +75,5 @@ func doUDPresponse(ip, res string) {
 		return
 	}
 
-	fmt.Printf("unhandled kasa response [%s] %s\n", ip, res)
+	fmt.Printf("unhandled kasa response [%s] %s", ip, res)
 }
