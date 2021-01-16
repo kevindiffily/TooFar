@@ -1,12 +1,14 @@
 package onkyo
 
 import (
+	"encoding/json"
 	"github.com/cloudkucooland/go-eiscp"
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
 	"github.com/cloudkucooland/toofar/action"
 	"github.com/cloudkucooland/toofar/config"
 	"github.com/cloudkucooland/toofar/platform"
 
+	"fmt"
 	"github.com/brutella/hc/accessory"
 	"github.com/brutella/hc/characteristic"
 	"github.com/brutella/hc/log"
@@ -35,7 +37,7 @@ func (o Platform) Shutdown() platform.Control {
 	return o
 }
 
-// AddAccessory adds a Shelly device and registers it with HC
+// AddAccessory adds an Onkyo  device and registers it with HC
 func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	doOnce.Do(func() {
 		onkyos = make(map[string]*tfaccessory.TFAccessory)
@@ -54,13 +56,16 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		log.Info.Printf("unable to pull for details: %s", err.Error())
 		return
 	}
-	// log.Info.Printf("%+v", deets)
+	j, _ := json.MarshalIndent(deets, "", "  ")
+	log.Info.Printf("\n%s\n", j)
+
+	// create a new receiver for each zone?
 
 	a.Info.Manufacturer = deets.Device.Brand
 	a.Info.Model = deets.Device.Model
 	a.Info.SerialNumber = deets.Device.DeviceSerial
 	a.Info.FirmwareRevision = deets.Device.FirmwareVersion
-	a.Info.Name = a.Name
+	a.Info.Name = fmt.Sprintf("%s:%s", a.Name, deets.Device.ZoneList.Zone[0].Name)
 
 	if a.Info.ID == 0 {
 		a.Info.ID = 110
@@ -73,7 +78,7 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	h, _ := platform.GetPlatform("HomeControl")
 	h.AddAccessory(a)
 
-	a.TXNR686.Television.ConfiguredName.SetValue(a.Name)
+	a.TXNR686.Television.ConfiguredName.SetValue(a.Info.Name)
 	a.TXNR686.AddInputs(deets)
 
 	// set initial power state
@@ -169,7 +174,7 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	} else {
 		i, _ := strconv.ParseInt(string(source), 16, 32)
 		a.TXNR686.Television.ActiveIdentifier.SetValue(int(i))
-		a.TXNR686.Television.ConfiguredName.SetValue(a.TXNR686.Sources[int(i)])
+		a.TXNR686.Television.ConfiguredName.SetValue(fmt.Sprintf("%s:%s", a.Info.Name, a.TXNR686.Sources[int(i)]))
 	}
 
 	/// NPS does not respond if powered off
@@ -313,7 +318,7 @@ func runner(a *tfaccessory.TFAccessory, d *action.Action) {
 
 		i, _ := strconv.ParseInt(string(source), 16, 32)
 		a.TXNR686.Television.ActiveIdentifier.SetValue(int(i))
-		a.TXNR686.Television.ConfiguredName.SetValue(a.TXNR686.Sources[int(i)])
+		a.TXNR686.Television.ConfiguredName.SetValue(fmt.Sprintf("%s:%s", a.Info.Name, a.TXNR686.Sources[int(i)]))
 		log.Info.Println("setting to tuneIN radio")
 		dev.SetNetworkServiceTuneIn()
 		time.Sleep(time.Second * 3)
@@ -403,7 +408,7 @@ func (o Platform) backgroundPuller() {
 			i, _ := strconv.ParseInt(string(source), 16, 32)
 			if int(i) != a.TXNR686.Television.ActiveIdentifier.GetValue() {
 				a.TXNR686.Television.ActiveIdentifier.SetValue(int(i))
-				a.TXNR686.Television.ConfiguredName.SetValue(a.TXNR686.Sources[int(i)])
+				a.TXNR686.Television.ConfiguredName.SetValue(fmt.Sprintf("%s:%s", a.Info.Name, a.TXNR686.Sources[int(i)]))
 			}
 		}
 

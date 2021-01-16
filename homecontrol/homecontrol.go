@@ -13,7 +13,7 @@ import (
 	"github.com/brutella/hc/util"
 	// "github.com/brutella/hc/characteristic"
 	"github.com/brutella/hc/log"
-	"github.com/brutella/hc/service"
+	// "github.com/brutella/hc/service"
 	"sync"
 )
 
@@ -142,7 +142,7 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 			a.LinuxSensors = devices.NewLinuxSensors(a.Info)
 			a.Accessory = a.LinuxSensors.Accessory
 		default:
-			a.Thermometer = accessory.NewTemperatureSensor(a.Info, 20, -10, 45, 1)
+			a.Thermometer = accessory.NewTemperatureSensor(a.Info, 20, -10, 55, 0.1)
 			a.Accessory = a.Thermometer.Accessory
 		}
 	case accessory.TypeSecuritySystem:
@@ -161,16 +161,18 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 	}
 
 	// deprecated by HomeKit; still visible in Control.app
-	a.BridgingState = service.NewBridgingState()
-	a.Accessory.AddService(a.BridgingState.Service)
-	a.BridgingState.Reachable.SetValue(true)
-	a.BridgingState.Reachable.Description = "BridgingState.Reachable"
-	// a.BridgingState.LinkQuality.SetValue(1)
-	a.BridgingState.LinkQuality.Description = "BridgingState.LinkQuality"
-	a.BridgingState.AccessoryIdentifier.SetValue(a.Name)
-	a.BridgingState.AccessoryIdentifier.Description = "BridgingState.AccessoryIdentifier"
-	// a.BridgingState.Category.SetValue(1)
-	a.BridgingState.Category.Description = "BridgingState.Category"
+	/*
+		a.BridgingState = service.NewBridgingState()
+		a.Accessory.AddService(a.BridgingState.Service)
+		a.BridgingState.Reachable.SetValue(true)
+		a.BridgingState.Reachable.Description = "BridgingState.Reachable"
+		// a.BridgingState.LinkQuality.SetValue(1)
+		a.BridgingState.LinkQuality.Description = "BridgingState.LinkQuality"
+		a.BridgingState.AccessoryIdentifier.SetValue(a.Name)
+		a.BridgingState.AccessoryIdentifier.Description = "BridgingState.AccessoryIdentifier"
+		// a.BridgingState.Category.SetValue(1)
+		a.BridgingState.Category.Description = "BridgingState.Category"
+	*/
 
 	a.Accessory.OnIdentify(func() {
 		log.Info.Printf("identify called for [%s]: %+v", a.Name, a.Accessory)

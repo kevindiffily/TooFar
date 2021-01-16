@@ -3,6 +3,7 @@ package devices
 import (
 	"github.com/brutella/hc/accessory"
 	"github.com/brutella/hc/characteristic"
+	"github.com/brutella/hc/log"
 	"github.com/brutella/hc/service"
 )
 
@@ -10,7 +11,6 @@ type HS220 struct {
 	*accessory.Accessory
 	Lightbulb          *HS220Svc
 	ProgrammableSwitch *service.StatefulProgrammableSwitch
-	WifiTransport      *service.WifiTransport
 }
 
 func NewHS220(info accessory.Info) *HS220 {
@@ -23,16 +23,16 @@ func NewHS220(info accessory.Info) *HS220 {
 	acc.ProgrammableSwitch = service.NewStatefulProgrammableSwitch()
 	acc.AddService(acc.ProgrammableSwitch.Service)
 
-	acc.ProgrammableSwitch.ProgrammableSwitchEvent = characteristic.NewProgrammableSwitchEvent()
-	acc.ProgrammableSwitch.ProgrammableSwitchEvent.SetValue(0)
-	acc.ProgrammableSwitch.AddCharacteristic(acc.ProgrammableSwitch.ProgrammableSwitchEvent.Characteristic)
+	// acc.ProgrammableSwitch.ProgrammableSwitchEvent = characteristic.NewProgrammableSwitchEvent()
+	// acc.ProgrammableSwitch.ProgrammableSwitchEvent.SetValue(0)
+	// acc.ProgrammableSwitch.AddCharacteristic(acc.ProgrammableSwitch.ProgrammableSwitchEvent.Characteristic)
 
 	acc.ProgrammableSwitch.ProgrammableSwitchOutputState = characteristic.NewProgrammableSwitchOutputState()
 	acc.ProgrammableSwitch.AddCharacteristic(acc.ProgrammableSwitch.ProgrammableSwitchOutputState.Characteristic)
 
-	acc.WifiTransport = service.NewWifiTransport()
-	acc.WifiTransport.CurrentTransport.SetValue(true)
-	// acc.AddService(acc.WifiTransport.Service)
+	acc.ProgrammableSwitch.ProgrammableSwitchOutputState.OnValueRemoteUpdate(func(newval int) {
+		log.Info.Printf("HS220 ProgrammableSwitchOutputState handler called: %d", newval)
+	})
 
 	return &acc
 }

@@ -266,7 +266,7 @@ func runner(a *tfaccessory.TFAccessory, action *action.Action) {
 		// if it is already at the target, set to full-on
 		bv := a.ColoredLightbulb.Lightbulb.Brightness.GetValue()
 		log.Info.Printf("current brightness: %d, target: %d", bv, target)
-		if bv == action.SetTargetBrightness {
+		if bv == target {
 			log.Info.Printf("adjusting target too 99")
 			target = 99
 		}
@@ -278,63 +278,16 @@ func runner(a *tfaccessory.TFAccessory, action *action.Action) {
 		}
 
 		// update GUI
-		a.ColoredLightbulb.Lightbulb.Brightness.SetValue(target)
+		if a.ColoredLightbulb != nil {
+			a.ColoredLightbulb.Lightbulb.Brightness.SetValue(target)
+		}
+		if a.TempLightbulb != nil {
+			a.TempLightbulb.Lightbulb.Brightness.SetValue(target)
+		}
 	case "Toggle":
 		log.Info.Println("toggle verb called")
 	default:
 		log.Info.Println("unknown tradfri verb: %s", action.Verb)
-	}
-
-	if action.SetTargetBrightness != 0 {
-		log.Info.Println("switch to using SetBrightness verb")
-		target := action.SetTargetBrightness
-
-		// if it is already at the target, set to full-on
-		if a.ColoredLightbulb != nil {
-			bv := a.ColoredLightbulb.Lightbulb.Brightness.GetValue()
-			log.Info.Printf("current brightness: %d, target: %d", bv, target)
-			if bv == action.SetTargetBrightness {
-				log.Info.Printf("adjusting target too 99")
-				target = 99
-			}
-
-			// update hardware
-			_, err := tradfriClient.PutDeviceDimming(a.Name, target*255/100)
-			if err != nil {
-				log.Info.Println(err.Error())
-			}
-
-			// update GUI
-			a.ColoredLightbulb.Lightbulb.Brightness.SetValue(target)
-		}
-
-		if a.TempLightbulb != nil {
-			bv := a.TempLightbulb.Lightbulb.Brightness.GetValue()
-			log.Info.Printf("current brightness: %d, target: %d", bv, target)
-			if bv == action.SetTargetBrightness {
-				log.Info.Printf("adjusting target too 99")
-				target = 99
-			}
-
-			// update hardware
-			_, err := tradfriClient.PutDeviceDimming(a.Name, target*255/100)
-			if err != nil {
-				log.Info.Println(err.Error())
-			}
-
-			// update GUI
-			a.TempLightbulb.Lightbulb.Brightness.SetValue(target)
-		}
-
-	} else {
-		log.Info.Println("switch to using SetBrightness verb")
-		// just toggle
-		newstate := !a.ColoredLightbulb.Lightbulb.On.GetValue()
-		_, err := tradfriClient.PutDevicePower(a.Name, newstate)
-		if err != nil {
-			log.Info.Println(err.Error())
-		}
-		a.ColoredLightbulb.Lightbulb.On.SetValue(newstate)
 	}
 }
 

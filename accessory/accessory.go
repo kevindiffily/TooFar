@@ -35,7 +35,7 @@ type TFAccessory struct {
 	*devices.TempLightbulb
 	*devices.LinuxSensors
 	*service.HumiditySensor
-	*service.BridgingState
+	// *service.BridgingState
 
 	Actions []action.Action
 	Runner  func(*TFAccessory, *action.Action)

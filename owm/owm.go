@@ -80,9 +80,6 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	a.Thermometer.TempSensor.CurrentTemperature.Description = "CurrentTemperature"
 	if a.Thermometer.TempSensor.CurrentTemperature.GetValue() != w.Main.Temp {
 		a.Thermometer.TempSensor.CurrentTemperature.SetValue(w.Main.Temp)
-		// a.Thermometer.TempSensor.CurrentTemperature.SetMinValue(w.Main.TempMin)
-		// a.Thermometer.TempSensor.CurrentTemperature.SetMaxValue(w.Main.TempMax)
-		// a.Thermometer.TempSensor.AddCharacteristic(a.StatusActive.Characteristic)
 	}
 
 	a.HumiditySensor = service.NewHumiditySensor()
@@ -91,7 +88,6 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	if a.HumiditySensor.CurrentRelativeHumidity.GetValue() != float64(w.Main.Humidity) {
 		a.HumiditySensor.CurrentRelativeHumidity.SetValue(float64(w.Main.Humidity))
 	}
-	// a.HumiditySensor.AddCharacteristic(a.StatusActive.Characteristic)
 }
 
 // actionRunner here makes no sense...
