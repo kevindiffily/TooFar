@@ -1,5 +1,7 @@
 package tradfri
 
+// https://callistaenterprise.se/blogg/teknik/2019/03/15/a-quick-home-automation/
+
 import (
 	"github.com/brutella/hc/log"
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
@@ -140,7 +142,7 @@ func lightbulbLogic(newDevice *tfaccessory.TFAccessory, d model.Device) {
 		lightbulbHSL(newDevice, d)
 	case "TRADFRI bulb E26 WS opal 980lm":
 		lightbulbTemp(newDevice, d)
-	case "LTD010":
+	case "LTD010": // philips hue can lightbulbs
 		lightbulbTemp(newDevice, d)
 	default:
 		log.Info.Printf("unknown bulb type, using generic: %s", newDevice.Info.Model)
@@ -287,7 +289,7 @@ func runner(a *tfaccessory.TFAccessory, action *action.Action) {
 	case "Toggle":
 		log.Info.Println("toggle verb called")
 	default:
-		log.Info.Println("unknown tradfri verb: %s", action.Verb)
+		log.Info.Printf("unknown tradfri verb: %s", action.Verb)
 	}
 }
 

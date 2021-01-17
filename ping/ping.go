@@ -42,7 +42,7 @@ func (p Platform) Shutdown() platform.Control {
 	return p
 }
 
-// AddAccessory adds a Kasa device, pulls it for info, then adds it to HC
+// AddAccessory adds a ping device, then adds it to HC
 func (p Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	storage, err := util.NewFileStorage("serials")
 	if err != nil {
@@ -60,7 +60,7 @@ func (p Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	serial := util.GetSerialNumberForAccessoryName(a.Info.Name, storage)
 	a.Info.SerialNumber = serial
 	a.Info.Model = "TooFarPing"
-	a.Info.FirmwareRevision = "0.0.1"
+	a.Info.FirmwareRevision = "0.0.2"
 	a.Info.Manufacturer = "deviousness"
 
 	h, _ := platform.GetPlatform("HomeControl")
@@ -72,6 +72,11 @@ func (p Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	cs := service.NewContactSensor()
 	cs.ContactSensorState.SetValue(up)
 	a.Accessory.AddService(cs.Service)
+
+	// why is (was?) this necessary?
+	bs := service.NewBridgingState()
+	bs.Reachable.SetValue(true)
+	a.Accessory.AddService(bs.Service)
 }
 
 // GetAccessory looks up a device by IP address
