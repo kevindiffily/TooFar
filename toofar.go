@@ -62,7 +62,7 @@ func BootstrapPlatforms(c *config.Config) {
 		kp.Discover() // UDP probe for Kasa devices
 		// s.Discover() // TBD shelly discovery
 		// wait a bit for discovery to complete -- otherwise HCStart runs before all devices are found
-		time.Sleep(time.Second * 2)
+		time.Sleep(time.Second)
 	}
 }
 

@@ -75,6 +75,15 @@ func NewTXNR686(info accessory.Info) *TXNR686 {
 	return &acc
 }
 
+// doesn't do anything yet
+func (t *TXNR686) AddZones(nfi *eiscp.NRI) {
+	for _, s := range nfi.Device.ZoneList.Zone {
+		if s.Name != "Main" && s.Value == "1" {
+			log.Info.Printf("discovered zone: %+v", s)
+		}
+	}
+}
+
 func (t *TXNR686) AddInputs(nfi *eiscp.NRI) {
 	for _, s := range nfi.Device.SelectorList.Selector {
 		// skip the label
@@ -257,9 +266,6 @@ func NewTXNR686Svc() *TXNR686Svc {
 
 	svc.CurrentMediaState = characteristic.NewCurrentMediaState()
 	svc.AddCharacteristic(svc.CurrentMediaState.Characteristic)
-	svc.CurrentMediaState.OnValueRemoteUpdate(func(newstate int) {
-		log.Info.Printf("TXNR686: CurrentMediaState: %d", newstate)
-	})
 
 	svc.TargetMediaState = characteristic.NewTargetMediaState()
 	svc.AddCharacteristic(svc.TargetMediaState.Characteristic)

@@ -95,7 +95,7 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 
 	_, ok = k.GetAccessory(a.IP)
 	if ok {
-		log.Info.Println("already have a device with this IP address: %s", a.IP)
+		log.Info.Printf("already have a device with this IP address: %s", a.IP)
 		return
 	}
 
@@ -156,7 +156,6 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	}
 	if a.HS220 != nil {
 		a.HS220.Lightbulb.On.SetValue(settings.RelayState > 0)
-		a.HS220.ProgrammableSwitch.ProgrammableSwitchOutputState.SetValue(settings.RelayState)
 		a.HS220.Lightbulb.On.OnValueRemoteUpdate(func(newstate bool) {
 			log.Info.Printf("setting [%s] to [%t] from HS220 handler", a.Name, newstate)
 			err := setRelayState(a, newstate)
@@ -169,14 +168,6 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		a.HS220.Lightbulb.Brightness.OnValueRemoteUpdate(func(newval int) {
 			log.Info.Printf("setting [%s] brightness [%d] from HS220 handler", a.Name, newval)
 			err := setBrightness(a, newval)
-			if err != nil {
-				log.Info.Println(err.Error())
-				return
-			}
-		})
-		a.HS220.ProgrammableSwitch.ProgrammableSwitchOutputState.OnValueRemoteUpdate(func(newval int) {
-			log.Info.Printf("setting [%s] to [%d] from HS220 PSOS handler", a.Name, newval)
-			err := setRelayState(a, newval == 1)
 			if err != nil {
 				log.Info.Println(err.Error())
 				return

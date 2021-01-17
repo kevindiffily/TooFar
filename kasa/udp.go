@@ -27,13 +27,13 @@ func doUDPresponse(ip, res string) {
 			return
 		}
 		log.Info.Printf("adding previously unknown device: %s", ip)
-		a := &tfaccessory.TFAccessory{Platform: "Kasa", IP: ip}
-		k.AddAccessory(a)
+		newAcc := &tfaccessory.TFAccessory{Platform: "Kasa", IP: ip, Name: ip}
+		k.AddAccessory(newAcc)
 		return
 	}
 
 	if strings.Contains(res, `"get_sysinfo"`) {
-		var kd kasaDevice
+		kd := kasaDevice{}
 		if err := json.Unmarshal([]byte(res), &kd); err != nil {
 			log.Info.Println(err.Error())
 			return
@@ -54,7 +54,6 @@ func doUDPresponse(ip, res string) {
 			if a.HS220.Lightbulb.On.GetValue() != (r.RelayState > 0) {
 				log.Info.Printf("updating HomeKit: %s relay %d", a.IP, r.RelayState)
 				a.HS220.Lightbulb.On.SetValue(r.RelayState > 0)
-				a.HS220.ProgrammableSwitch.ProgrammableSwitchOutputState.SetValue(r.RelayState)
 			}
 			if a.HS220.Lightbulb.Brightness.GetValue() != r.Brightness {
 				log.Info.Printf("updating HomeKit: %s brightness %d", a.IP, r.RelayState)

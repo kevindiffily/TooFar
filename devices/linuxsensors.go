@@ -2,7 +2,6 @@ package devices
 
 import (
 	"github.com/brutella/hc/accessory"
-	// "github.com/brutella/hc/characteristic"
 	"github.com/brutella/hc/service"
 )
 
@@ -20,8 +19,5 @@ func NewLinuxSensors(info accessory.Info) *LinuxSensors {
 	acc.Accessory = accessory.New(info, accessory.TypeSensor)
 
 	acc.Chips = make(map[string]*SensorChipValues)
-	// acc.StatelessSwitch = service.NewStatelessProgrammableSwitch()
-	// acc.AddService(acc.StatelessSwitch.Service)
-
 	return &acc
 }

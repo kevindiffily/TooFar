@@ -1,7 +1,7 @@
 package onkyo
 
 import (
-	"encoding/json"
+	// "encoding/json"
 	"github.com/cloudkucooland/go-eiscp"
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
 	"github.com/cloudkucooland/toofar/action"
@@ -56,19 +56,21 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		log.Info.Printf("unable to pull for details: %s", err.Error())
 		return
 	}
-	j, _ := json.MarshalIndent(deets, "", "  ")
-	log.Info.Printf("\n%s\n", j)
-
-	// create a new receiver for each zone?
+	// j, _ := json.MarshalIndent(deets.Device.ZoneList, "", "  ")
+	// log.Info.Printf("\n%s\n", j)
 
 	a.Info.Manufacturer = deets.Device.Brand
 	a.Info.Model = deets.Device.Model
 	a.Info.SerialNumber = deets.Device.DeviceSerial
 	a.Info.FirmwareRevision = deets.Device.FirmwareVersion
-	a.Info.Name = fmt.Sprintf("%s:%s", a.Name, deets.Device.ZoneList.Zone[0].Name)
+	a.Info.Name = fmt.Sprintf("%s (%s)", a.Name, deets.Device.ZoneList.Zone[0].Name)
 
 	if a.Info.ID == 0 {
-		a.Info.ID = 110
+		s, err := strconv.ParseUint(deets.Device.DeviceSerial, 16, 64)
+		if err != nil {
+			log.Info.Println(err)
+		}
+		a.Info.ID = s
 	}
 
 	onkyos[a.Name] = a
@@ -80,6 +82,7 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 
 	a.TXNR686.Television.ConfiguredName.SetValue(a.Info.Name)
 	a.TXNR686.AddInputs(deets)
+	a.TXNR686.AddZones(deets)
 
 	// set initial power state
 	power, err := dev.GetPower()
@@ -268,7 +271,7 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 			}
 		case characteristic.RemoteKeyBack:
 			log.Info.Println("TXNR686: RemoteKey: Back")
-			if err := d.SetOnly("NTC", "MENU"); err != nil {
+			if err := d.SetOnly("NTC", "TOP"); err != nil {
 				log.Info.Println(err)
 			}
 		}
