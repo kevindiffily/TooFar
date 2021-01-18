@@ -90,18 +90,52 @@ func (h HCPlatform) Shutdown() platform.Control {
 func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 	switch a.Type {
 	case accessory.TypeSwitch:
-		a.Switch = accessory.NewSwitch(a.Info)
-		a.Accessory = a.Switch.Accessory
-		a.Runner = genericSwitchActionRunner
-		a.Switch.Switch.On.OnValueRemoteUpdate(func(newval bool) {
-			if newval {
-				actions := a.MatchActions("On")
-				runner.RunActions(actions)
-			} else {
-				actions := a.MatchActions("Off")
-				runner.RunActions(actions)
-			}
-		})
+		switch a.Info.Model {
+		case "KP303(US)":
+			a.KP303 = devices.NewKP303(a.Info)
+			a.Accessory = a.KP303.Accessory
+			a.Runner = genericSwitchActionRunner
+			a.KP303.One.On.OnValueRemoteUpdate(func(newval bool) {
+				if newval {
+					actions := a.MatchActions("On")
+					runner.RunActions(actions)
+				} else {
+					actions := a.MatchActions("Off")
+					runner.RunActions(actions)
+				}
+			})
+			a.KP303.Two.On.OnValueRemoteUpdate(func(newval bool) {
+				if newval {
+					actions := a.MatchActions("On")
+					runner.RunActions(actions)
+				} else {
+					actions := a.MatchActions("Off")
+					runner.RunActions(actions)
+				}
+			})
+			a.KP303.Three.On.OnValueRemoteUpdate(func(newval bool) {
+				if newval {
+					actions := a.MatchActions("On")
+					runner.RunActions(actions)
+				} else {
+					actions := a.MatchActions("Off")
+					runner.RunActions(actions)
+				}
+			})
+		default:
+			a.Switch = accessory.NewSwitch(a.Info)
+			a.Accessory = a.Switch.Accessory
+			a.Runner = genericSwitchActionRunner
+			a.Switch.Switch.On.OnValueRemoteUpdate(func(newval bool) {
+				if newval {
+					actions := a.MatchActions("On")
+					runner.RunActions(actions)
+				} else {
+					actions := a.MatchActions("Off")
+					runner.RunActions(actions)
+				}
+			})
+		}
 	case accessory.TypeProgrammableSwitch:
 		a.StatelessSwitch = devices.NewStatelessSwitch(a.Info)
 		a.Accessory = a.StatelessSwitch.Accessory

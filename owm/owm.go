@@ -48,9 +48,7 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	if a.Info.Manufacturer == "" {
 		a.Info.Manufacturer = "OpenWeatherMap"
 	}
-	if a.Info.ID == 0 {
-		a.Info.ID = 1341
-	}
+	// if a.Info.ID == 0 { a.Info.ID = 1341 }
 
 	storage, err := util.NewFileStorage("serials")
 	if err != nil {
@@ -63,7 +61,6 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 
 	owms[a.Name] = a
 
-	// add to HC for GUI
 	h, _ := platform.GetPlatform("HomeControl")
 	h.AddAccessory(a)
 
@@ -72,7 +69,6 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	w, err := owm.NewCurrent("C", "EN", a.Password)
 	if err != nil {
 		log.Info.Println(err.Error())
-		// a.StatusActive.SetValue(false)
 		return
 	}
 	w.CurrentByName(a.Username)
@@ -90,7 +86,6 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	}
 }
 
-// actionRunner here makes no sense...
 func actionRunner(a *tfaccessory.TFAccessory, d *action.Action) {
 	log.Info.Printf("in owm action runner: %+v %+v", a, d)
 }
@@ -117,8 +112,6 @@ func (o Platform) backgroundPuller() {
 			log.Info.Println(err.Error())
 		}
 		w.CurrentByName(a.Username)
-		// log.Info.Printf("%+v", w.Main)
-		// if w.Main.Temp == 0 && w.Main.Humidity == 0 { a.StatusActive.SetValue(false) } else if a.StatusActive.GetValue() == false { a.StatusActive.SetValue(true) }
 		if a.Thermometer != nil && a.Thermometer.TempSensor.CurrentTemperature.GetValue() != w.Main.Temp {
 			a.Thermometer.TempSensor.CurrentTemperature.SetValue(w.Main.Temp)
 		}

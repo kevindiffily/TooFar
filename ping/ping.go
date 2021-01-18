@@ -76,6 +76,10 @@ func (p Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	// why is (was?) this necessary?
 	bs := service.NewBridgingState()
 	bs.Reachable.SetValue(true)
+	bs.Category.SetValue(1)
+	bs.LinkQuality.SetValue(1)
+	bs.AccessoryIdentifier.SetValue(a.Name)
+
 	a.Accessory.AddService(bs.Service)
 }
 

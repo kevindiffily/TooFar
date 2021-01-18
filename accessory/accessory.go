@@ -34,6 +34,7 @@ type TFAccessory struct {
 	*devices.TXNR686
 	*devices.TempLightbulb
 	*devices.LinuxSensors
+	*devices.KP303
 	*service.HumiditySensor
 	// *service.BridgingState
 

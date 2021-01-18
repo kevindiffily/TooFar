@@ -6,6 +6,7 @@ import (
 	// "encoding/json"
 	"fmt"
 	"github.com/brutella/hc/accessory"
+	"github.com/brutella/hc/characteristic"
 	"github.com/brutella/hc/log"
 	// "github.com/brutella/hc/util"
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
@@ -121,12 +122,16 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	}
 
 	switch settings.Model {
+	case "HS103(US)":
+		a.Type = accessory.TypeSwitch
 	case "HS200(US)":
 		a.Type = accessory.TypeSwitch
 	case "HS210(US)":
 		a.Type = accessory.TypeSwitch
 	case "HS220(US)":
 		a.Type = accessory.TypeLightbulb
+	case "KP303(US)":
+		a.Type = accessory.TypeSwitch
 	default:
 		a.Type = accessory.TypeSwitch
 	}
@@ -174,6 +179,48 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 			}
 		})
 	}
+	if a.KP303 != nil {
+		oneName := characteristic.NewName()
+		oneName.SetValue(settings.Children[0].Alias)
+		a.KP303.One.AddCharacteristic(oneName.Characteristic)
+
+		a.KP303.One.On.SetValue(settings.Children[0].RelayState > 0)
+		a.KP303.One.OutletInUse.SetValue(settings.Children[0].RelayState > 0)
+		a.KP303.One.On.OnValueRemoteUpdate(func(newstate bool) {
+			log.Info.Printf("setting [%s].[%s] to [%t] from KP303 handler", a.Name, settings.Children[0].Alias, newstate)
+			err := setChildRelayState(a, 0, newstate)
+			if err != nil {
+				log.Info.Println(err.Error())
+				return
+			}
+		})
+		twoName := characteristic.NewName()
+		twoName.SetValue(settings.Children[1].Alias)
+		a.KP303.Two.AddCharacteristic(twoName.Characteristic)
+		a.KP303.Two.On.SetValue(settings.Children[1].RelayState > 0)
+		a.KP303.Two.OutletInUse.SetValue(settings.Children[1].RelayState > 0)
+		a.KP303.Two.On.OnValueRemoteUpdate(func(newstate bool) {
+			log.Info.Printf("setting [%s].[%s] to [%t] from KP303 handler", a.Name, settings.Children[1].Alias, newstate)
+			err := setChildRelayState(a, 1, newstate)
+			if err != nil {
+				log.Info.Println(err.Error())
+				return
+			}
+		})
+		threeName := characteristic.NewName()
+		threeName.SetValue(settings.Children[2].Alias)
+		a.KP303.Three.AddCharacteristic(threeName.Characteristic)
+		a.KP303.Three.On.SetValue(settings.Children[2].RelayState > 0)
+		a.KP303.Three.OutletInUse.SetValue(settings.Children[2].RelayState > 0)
+		a.KP303.Three.On.OnValueRemoteUpdate(func(newstate bool) {
+			log.Info.Printf("setting [%s].[%s] to [%t] from KP303 handler", a.Name, settings.Children[2].Alias, newstate)
+			err := setChildRelayState(a, 2, newstate)
+			if err != nil {
+				log.Info.Println(err.Error())
+				return
+			}
+		})
+	}
 }
 
 func setRelayState(a *tfaccessory.TFAccessory, newstate bool) error {
@@ -182,6 +229,20 @@ func setRelayState(a *tfaccessory.TFAccessory, newstate bool) error {
 		state = 1
 	}
 	cmd := fmt.Sprintf(`{"system":{"set_relay_state":{"state":%d}}}`, state)
+	err := sendUDP(a.IP, cmd)
+	if err != nil {
+		log.Info.Println(err.Error())
+		return err
+	}
+	return nil
+}
+
+func setChildRelayState(a *tfaccessory.TFAccessory, child int, newstate bool) error {
+	state := 0
+	if newstate {
+		state = 1
+	}
+	cmd := fmt.Sprintf(`{"context":{"child":%d},"system":{"set_relay_state":{"state":%d}}}`, child, state)
 	err := sendUDP(a.IP, cmd)
 	if err != nil {
 		log.Info.Println(err.Error())

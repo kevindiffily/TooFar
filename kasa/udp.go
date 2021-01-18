@@ -44,7 +44,7 @@ func doUDPresponse(ip, res string) {
 		// HS200 / HS210
 		if a.Switch != nil {
 			if a.Switch.Switch.On.GetValue() != (r.RelayState > 0) {
-				log.Info.Printf("updating HomeKit: %s relay %d\n", a.IP, r.RelayState)
+				log.Info.Printf("updating HomeKit: [%s]:[%s] relay %d\n", a.IP, r.Alias, r.RelayState)
 				a.Switch.Switch.On.SetValue(r.RelayState > 0)
 			}
 		}
@@ -58,6 +58,23 @@ func doUDPresponse(ip, res string) {
 			if a.HS220.Lightbulb.Brightness.GetValue() != r.Brightness {
 				log.Info.Printf("updating HomeKit: %s brightness %d", a.IP, r.RelayState)
 				a.HS220.Lightbulb.Brightness.SetValue(r.Brightness)
+			}
+		}
+		if a.KP303 != nil {
+			if a.KP303.One.On.GetValue() != (r.Children[0].RelayState > 0) {
+				log.Info.Printf("updating HomeKit: %s:%s relay %d", a.IP, r.Children[0].Alias, r.Children[0].RelayState)
+				a.KP303.One.On.SetValue(r.Children[0].RelayState > 0)
+				a.KP303.One.OutletInUse.SetValue(r.Children[0].RelayState > 0)
+			}
+			if a.KP303.Two.On.GetValue() != (r.Children[1].RelayState > 0) {
+				log.Info.Printf("updating HomeKit: %s:%s relay %d", a.IP, r.Children[1].Alias, r.Children[1].RelayState)
+				a.KP303.Two.On.SetValue(r.Children[1].RelayState > 0)
+				a.KP303.Two.OutletInUse.SetValue(r.Children[1].RelayState > 0)
+			}
+			if a.KP303.Three.On.GetValue() != (r.Children[2].RelayState > 0) {
+				log.Info.Printf("updating HomeKit: %s:%s relay %d", a.IP, r.Children[2].Alias, r.Children[2].RelayState)
+				a.KP303.Three.On.SetValue(r.Children[2].RelayState > 0)
+				a.KP303.Three.OutletInUse.SetValue(r.Children[2].RelayState > 0)
 			}
 		}
 		return
