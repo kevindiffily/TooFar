@@ -188,7 +188,7 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		a.KP303.One.OutletInUse.SetValue(settings.Children[0].RelayState > 0)
 		a.KP303.One.On.OnValueRemoteUpdate(func(newstate bool) {
 			log.Info.Printf("setting [%s].[%s] to [%t] from KP303 handler", a.Name, settings.Children[0].Alias, newstate)
-			err := setChildRelayState(a, 0, newstate)
+			err := setChildRelayState(a, settings.Children[0].ID, newstate)
 			if err != nil {
 				log.Info.Println(err.Error())
 				return
@@ -201,7 +201,7 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		a.KP303.Two.OutletInUse.SetValue(settings.Children[1].RelayState > 0)
 		a.KP303.Two.On.OnValueRemoteUpdate(func(newstate bool) {
 			log.Info.Printf("setting [%s].[%s] to [%t] from KP303 handler", a.Name, settings.Children[1].Alias, newstate)
-			err := setChildRelayState(a, 1, newstate)
+			err := setChildRelayState(a, settings.Children[1].ID, newstate)
 			if err != nil {
 				log.Info.Println(err.Error())
 				return
@@ -214,7 +214,7 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		a.KP303.Three.OutletInUse.SetValue(settings.Children[2].RelayState > 0)
 		a.KP303.Three.On.OnValueRemoteUpdate(func(newstate bool) {
 			log.Info.Printf("setting [%s].[%s] to [%t] from KP303 handler", a.Name, settings.Children[2].Alias, newstate)
-			err := setChildRelayState(a, 2, newstate)
+			err := setChildRelayState(a, settings.Children[2].ID, newstate)
 			if err != nil {
 				log.Info.Println(err.Error())
 				return
@@ -237,12 +237,12 @@ func setRelayState(a *tfaccessory.TFAccessory, newstate bool) error {
 	return nil
 }
 
-func setChildRelayState(a *tfaccessory.TFAccessory, child int, newstate bool) error {
+func setChildRelayState(a *tfaccessory.TFAccessory, childID string, newstate bool) error {
 	state := 0
 	if newstate {
 		state = 1
 	}
-	cmd := fmt.Sprintf(`{"context":{"child":%d},"system":{"set_relay_state":{"state":%d}}}`, child, state)
+	cmd := fmt.Sprintf(`{"context":{"child_ids":["%s"]},"system":{"set_relay_state":{"state":%d}}}`, childID, state)
 	err := sendUDP(a.IP, cmd)
 	if err != nil {
 		log.Info.Println(err.Error())

@@ -61,7 +61,7 @@ func sendTCP(ip string, cmd string) (string, error) {
 		return "", err
 	}
 	defer conn.Close()
-	conn.SetReadDeadline(time.Now().Add(time.Second * 3))
+	conn.SetReadDeadline(time.Now().Add(time.Second * 10))
 	_, err = conn.Write(payload)
 	if err != nil {
 		log.Info.Printf("Cannot send command to device: %s", err.Error())
