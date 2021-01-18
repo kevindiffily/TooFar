@@ -60,7 +60,7 @@ func doUDPresponse(ip, res string) {
 		}
 
 		if a.KP303 != nil {
-			for i := 0; i <= 2; i++ {
+			for i := 0; i < len(a.KP303.Outlets); i++ {
 				if a.KP303.Outlets[i].On.GetValue() != (r.Children[i].RelayState > 0) {
 					log.Info.Printf("updating HomeKit: [%s]:[%s] relay %d", a.IP, r.Children[i].Alias, r.Children[i].RelayState)
 					a.KP303.Outlets[i].On.SetValue(r.Children[0].RelayState > 0)

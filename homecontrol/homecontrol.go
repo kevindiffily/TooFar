@@ -94,8 +94,8 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 		case "KP303(US)":
 			a.KP303 = devices.NewKP303(a.Info)
 			a.Accessory = a.KP303.Accessory
-			// a.Runner = genericSwitchActionRunner
-			for i := 0; i <= 2; i++ {
+			a.Runner = genericSwitchActionRunner
+			for i := 0; i < len(a.KP303.Outlets); i++ {
 				a.KP303.Outlets[i].On.OnValueRemoteUpdate(func(newval bool) {
 					if newval {
 						actions := a.MatchActions("On")

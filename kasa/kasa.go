@@ -180,16 +180,18 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		})
 	}
 	if a.KP303 != nil {
-		for i := 0; i <= 2; i++ {
+		for i := 0; i < len(a.KP303.Outlets); i++ {
 			n := characteristic.NewName()
 			n.SetValue(settings.Children[i].Alias)
-			a.KP303.Outlets[i].AddCharacteristic(n.Characteristic)
+			outlet := a.KP303.Outlets[i]
+			outlet.AddCharacteristic(n.Characteristic)
 
-			a.KP303.Outlets[i].On.SetValue(settings.Children[i].RelayState > 0)
-			a.KP303.Outlets[i].OutletInUse.SetValue(settings.Children[i].RelayState > 0)
-			a.KP303.Outlets[i].On.OnValueRemoteUpdate(func(newstate bool) {
-				log.Info.Printf("setting [%s].[%s] to [%t] from KP303 handler", a.Name, settings.Children[i].Alias, newstate)
-				err := setChildRelayState(a, settings.Children[i].ID, newstate)
+			outlet.On.SetValue(settings.Children[i].RelayState > 0)
+			outlet.OutletInUse.SetValue(settings.Children[i].RelayState > 0)
+			l := i // local-only copy for this func
+			outlet.On.OnValueRemoteUpdate(func(newstate bool) {
+				log.Info.Printf("setting [%s].[%d] to [%t] from KP303 handler", a.Name, l, newstate)
+				err := setChildRelayState(a, settings.Children[l].ID, newstate)
 				if err != nil {
 					log.Info.Println(err.Error())
 					return
