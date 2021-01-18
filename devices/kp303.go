@@ -8,21 +8,18 @@ import (
 
 type KP303 struct {
 	*accessory.Accessory
-	One   *service.Outlet
-	Two   *service.Outlet
-	Three *service.Outlet
+	Outlets []*service.Outlet
 }
 
 func NewKP303(info accessory.Info) *KP303 {
 	acc := KP303{}
 	acc.Accessory = accessory.New(info, accessory.TypeLightbulb)
 
-	acc.One = service.NewOutlet()
-	acc.AddService(acc.One.Service)
-	acc.Two = service.NewOutlet()
-	acc.AddService(acc.Two.Service)
-	acc.Three = service.NewOutlet()
-	acc.AddService(acc.Three.Service)
+	acc.Outlets = make([]*service.Outlet, 3, 3)
+	for i := 0; i <= 2; i++ {
+		acc.Outlets[i] = service.NewOutlet()
+		acc.AddService(acc.Outlets[i].Service)
+	}
 
 	return &acc
 }

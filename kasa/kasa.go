@@ -180,46 +180,22 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		})
 	}
 	if a.KP303 != nil {
-		oneName := characteristic.NewName()
-		oneName.SetValue(settings.Children[0].Alias)
-		a.KP303.One.AddCharacteristic(oneName.Characteristic)
+		for i := 0; i <= 2; i++ {
+			n := characteristic.NewName()
+			n.SetValue(settings.Children[i].Alias)
+			a.KP303.Outlets[i].AddCharacteristic(n.Characteristic)
 
-		a.KP303.One.On.SetValue(settings.Children[0].RelayState > 0)
-		a.KP303.One.OutletInUse.SetValue(settings.Children[0].RelayState > 0)
-		a.KP303.One.On.OnValueRemoteUpdate(func(newstate bool) {
-			log.Info.Printf("setting [%s].[%s] to [%t] from KP303 handler", a.Name, settings.Children[0].Alias, newstate)
-			err := setChildRelayState(a, settings.Children[0].ID, newstate)
-			if err != nil {
-				log.Info.Println(err.Error())
-				return
-			}
-		})
-		twoName := characteristic.NewName()
-		twoName.SetValue(settings.Children[1].Alias)
-		a.KP303.Two.AddCharacteristic(twoName.Characteristic)
-		a.KP303.Two.On.SetValue(settings.Children[1].RelayState > 0)
-		a.KP303.Two.OutletInUse.SetValue(settings.Children[1].RelayState > 0)
-		a.KP303.Two.On.OnValueRemoteUpdate(func(newstate bool) {
-			log.Info.Printf("setting [%s].[%s] to [%t] from KP303 handler", a.Name, settings.Children[1].Alias, newstate)
-			err := setChildRelayState(a, settings.Children[1].ID, newstate)
-			if err != nil {
-				log.Info.Println(err.Error())
-				return
-			}
-		})
-		threeName := characteristic.NewName()
-		threeName.SetValue(settings.Children[2].Alias)
-		a.KP303.Three.AddCharacteristic(threeName.Characteristic)
-		a.KP303.Three.On.SetValue(settings.Children[2].RelayState > 0)
-		a.KP303.Three.OutletInUse.SetValue(settings.Children[2].RelayState > 0)
-		a.KP303.Three.On.OnValueRemoteUpdate(func(newstate bool) {
-			log.Info.Printf("setting [%s].[%s] to [%t] from KP303 handler", a.Name, settings.Children[2].Alias, newstate)
-			err := setChildRelayState(a, settings.Children[2].ID, newstate)
-			if err != nil {
-				log.Info.Println(err.Error())
-				return
-			}
-		})
+			a.KP303.Outlets[i].On.SetValue(settings.Children[i].RelayState > 0)
+			a.KP303.Outlets[i].OutletInUse.SetValue(settings.Children[i].RelayState > 0)
+			a.KP303.Outlets[i].On.OnValueRemoteUpdate(func(newstate bool) {
+				log.Info.Printf("setting [%s].[%s] to [%t] from KP303 handler", a.Name, settings.Children[i].Alias, newstate)
+				err := setChildRelayState(a, settings.Children[i].ID, newstate)
+				if err != nil {
+					log.Info.Println(err.Error())
+					return
+				}
+			})
+		}
 	}
 }
 

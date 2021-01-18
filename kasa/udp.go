@@ -41,7 +41,6 @@ func doUDPresponse(ip, res string) {
 		// log.Info.Printf("%+v", kd)
 		r := kd.System.Sysinfo
 
-		// HS200 / HS210
 		if a.Switch != nil {
 			if a.Switch.Switch.On.GetValue() != (r.RelayState > 0) {
 				log.Info.Printf("updating HomeKit: [%s]:[%s] relay %d\n", a.IP, r.Alias, r.RelayState)
@@ -49,38 +48,29 @@ func doUDPresponse(ip, res string) {
 			}
 		}
 
-		// HS220
 		if a.HS220 != nil {
 			if a.HS220.Lightbulb.On.GetValue() != (r.RelayState > 0) {
-				log.Info.Printf("updating HomeKit: %s relay %d", a.IP, r.RelayState)
+				log.Info.Printf("updating HomeKit: [%s]:[%s] relay %d", a.IP, r.Alias, r.RelayState)
 				a.HS220.Lightbulb.On.SetValue(r.RelayState > 0)
 			}
 			if a.HS220.Lightbulb.Brightness.GetValue() != r.Brightness {
-				log.Info.Printf("updating HomeKit: %s brightness %d", a.IP, r.RelayState)
+				log.Info.Printf("updating HomeKit: [%s]:[%s] brightness %d", a.IP, r.Alias, r.RelayState)
 				a.HS220.Lightbulb.Brightness.SetValue(r.Brightness)
 			}
 		}
+
 		if a.KP303 != nil {
-			if a.KP303.One.On.GetValue() != (r.Children[0].RelayState > 0) {
-				log.Info.Printf("updating HomeKit: %s:%s relay %d", a.IP, r.Children[0].Alias, r.Children[0].RelayState)
-				a.KP303.One.On.SetValue(r.Children[0].RelayState > 0)
-				a.KP303.One.OutletInUse.SetValue(r.Children[0].RelayState > 0)
-			}
-			if a.KP303.Two.On.GetValue() != (r.Children[1].RelayState > 0) {
-				log.Info.Printf("updating HomeKit: %s:%s relay %d", a.IP, r.Children[1].Alias, r.Children[1].RelayState)
-				a.KP303.Two.On.SetValue(r.Children[1].RelayState > 0)
-				a.KP303.Two.OutletInUse.SetValue(r.Children[1].RelayState > 0)
-			}
-			if a.KP303.Three.On.GetValue() != (r.Children[2].RelayState > 0) {
-				log.Info.Printf("updating HomeKit: %s:%s relay %d", a.IP, r.Children[2].Alias, r.Children[2].RelayState)
-				a.KP303.Three.On.SetValue(r.Children[2].RelayState > 0)
-				a.KP303.Three.OutletInUse.SetValue(r.Children[2].RelayState > 0)
+			for i := 0; i <= 2; i++ {
+				if a.KP303.Outlets[i].On.GetValue() != (r.Children[i].RelayState > 0) {
+					log.Info.Printf("updating HomeKit: [%s]:[%s] relay %d", a.IP, r.Children[i].Alias, r.Children[i].RelayState)
+					a.KP303.Outlets[i].On.SetValue(r.Children[0].RelayState > 0)
+					a.KP303.Outlets[i].OutletInUse.SetValue(r.Children[0].RelayState > 0)
+				}
 			}
 		}
 		return
 	}
 
-	// we should never see these, I was manually riggering them during testing
 	if res == `{"system":{"set_relay_state":{"err_code":0}}}` {
 		log.Info.Printf("[%s] relay state changed", a.Name)
 		return

@@ -94,34 +94,18 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 		case "KP303(US)":
 			a.KP303 = devices.NewKP303(a.Info)
 			a.Accessory = a.KP303.Accessory
-			a.Runner = genericSwitchActionRunner
-			a.KP303.One.On.OnValueRemoteUpdate(func(newval bool) {
-				if newval {
-					actions := a.MatchActions("On")
-					runner.RunActions(actions)
-				} else {
-					actions := a.MatchActions("Off")
-					runner.RunActions(actions)
-				}
-			})
-			a.KP303.Two.On.OnValueRemoteUpdate(func(newval bool) {
-				if newval {
-					actions := a.MatchActions("On")
-					runner.RunActions(actions)
-				} else {
-					actions := a.MatchActions("Off")
-					runner.RunActions(actions)
-				}
-			})
-			a.KP303.Three.On.OnValueRemoteUpdate(func(newval bool) {
-				if newval {
-					actions := a.MatchActions("On")
-					runner.RunActions(actions)
-				} else {
-					actions := a.MatchActions("Off")
-					runner.RunActions(actions)
-				}
-			})
+			// a.Runner = genericSwitchActionRunner
+			for i := 0; i <= 2; i++ {
+				a.KP303.Outlets[i].On.OnValueRemoteUpdate(func(newval bool) {
+					if newval {
+						actions := a.MatchActions("On")
+						runner.RunActions(actions)
+					} else {
+						actions := a.MatchActions("Off")
+						runner.RunActions(actions)
+					}
+				})
+			}
 		default:
 			a.Switch = accessory.NewSwitch(a.Info)
 			a.Accessory = a.Switch.Accessory
