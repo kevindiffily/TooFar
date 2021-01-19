@@ -105,12 +105,18 @@ var client *http.Client
 func (s Platform) Startup(c *config.Config) platform.Control {
 	s.Running = true
 
+	timeout := config.Get().ShellyTimeout
+	// unset, default to something reasonable
+	if timeout == 0 {
+		timeout = 10
+	}
+
 	// these values are aggressive, probably not good for sites with lots of shellies
 	tr := &http.Transport{
 		MaxIdleConns:    5,
-		IdleConnTimeout: 10 * time.Second,
+		IdleConnTimeout: 30 * time.Second,
 	}
-	client = &http.Client{Transport: tr, Timeout: time.Second * 5}
+	client = &http.Client{Transport: tr, Timeout: time.Second * time.Duration(timeout)}
 	return s
 }
 
@@ -256,8 +262,12 @@ func getSettings(a *tfaccessory.TFAccessory) (*settings, error) {
 
 // Background starts up the go process to periodically verify the shelly's state
 func (s Platform) Background() {
+	spr := config.Get().ShellyPullRate
+	if spr == 0 {
+		log.Info.Println("pull rate set to 0, disabling shelly puller")
+	}
 	go func() {
-		for range time.Tick(time.Second * 30) {
+		for range time.Tick(time.Second * time.Duration(spr)) {
 			s.backgroundPuller()
 		}
 	}()

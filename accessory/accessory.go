@@ -46,12 +46,13 @@ type TFAccessory struct {
 // jumping through hoops since including platform here would be circular
 func (a TFAccessory) MatchActions(state string) []*action.Action {
 	log.Info.Printf("MatchActions: %s", state)
-	actions := make([]*action.Action, 0)
+	var actions []*action.Action
 	for _, action := range a.Actions {
 		if action.TriggerState == state {
-			log.Info.Printf("%+v", action)
+			log.Info.Printf("%s: %+v", action.TriggerState, action)
 			actions = append(actions, &action)
 		}
 	}
+	log.Info.Printf("%+v", actions)
 	return actions
 }

@@ -127,13 +127,6 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 		a.Runner = statelessSwitchActionRunner
 		a.StatelessSwitch.StatelessSwitch.ProgrammableSwitchEvent.OnValueRemoteUpdate(func(newval int) {
 			log.Info.Printf("running stateless switch: %d", newval)
-			if newval == 0 {
-				// actions := a.MatchActions("On")
-				// runner.RunActions(actions)
-			} else {
-				// actions := a.MatchActions("Off")
-				// runner.RunActions(actions)
-			}
 		})
 	case accessory.TypeLightbulb:
 		switch a.Info.Model {
@@ -178,20 +171,6 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 		a.Accessory = accessory.New(a.Info, a.Type)
 	}
 
-	// deprecated by HomeKit; still visible in Control.app
-	/*
-		a.BridgingState = service.NewBridgingState()
-		a.Accessory.AddService(a.BridgingState.Service)
-		a.BridgingState.Reachable.SetValue(true)
-		a.BridgingState.Reachable.Description = "BridgingState.Reachable"
-		// a.BridgingState.LinkQuality.SetValue(1)
-		a.BridgingState.LinkQuality.Description = "BridgingState.LinkQuality"
-		a.BridgingState.AccessoryIdentifier.SetValue(a.Name)
-		a.BridgingState.AccessoryIdentifier.Description = "BridgingState.AccessoryIdentifier"
-		// a.BridgingState.Category.SetValue(1)
-		a.BridgingState.Category.Description = "BridgingState.Category"
-	*/
-
 	a.Accessory.OnIdentify(func() {
 		log.Info.Printf("identify called for [%s]: %+v", a.Name, a.Accessory)
 		for _, service := range a.Accessory.GetServices() {
@@ -201,9 +180,7 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 			}
 		}
 	})
-	// the other platforms keep their own pointers indexed as they need
-	// this is only ever used for "dummy" devices which have no hardware associated
-	// with another platform.
+
 	hcs[a.Name] = a
 }
 
@@ -215,7 +192,7 @@ func (h HCPlatform) GetAccessory(name string) (*tfaccessory.TFAccessory, bool) {
 
 // Background runs the various background tasks: none for HC
 func (h HCPlatform) Background() {
-	// nothing
+	// pull the dummy switches and confirm their state?
 }
 
 func genericSwitchActionRunner(a *tfaccessory.TFAccessory, action *action.Action) {

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/brutella/hc/log"
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
+	"github.com/cloudkucooland/toofar/config"
 	"net"
 	"time"
 )
@@ -49,6 +50,11 @@ func encryptTCP(plaintext string) []byte {
 }
 
 func sendTCP(ip string, cmd string) (string, error) {
+	timeout := config.Get().KasaTimeout
+	// unset/0/1 -- use the default of 10 seconds
+	if timeout <= 0 {
+		timeout = 10
+	}
 	payload := encryptTCP(cmd)
 	r := net.TCPAddr{
 		IP:   net.ParseIP(ip),
@@ -61,16 +67,18 @@ func sendTCP(ip string, cmd string) (string, error) {
 		return "", err
 	}
 	defer conn.Close()
-	conn.SetReadDeadline(time.Now().Add(time.Second * 10))
+	conn.SetReadDeadline(time.Now().Add(time.Second * time.Duration(timeout)))
 	_, err = conn.Write(payload)
 	if err != nil {
 		log.Info.Printf("Cannot send command to device: %s", err.Error())
 		return "", err
 	}
 
-	// 200's return ~600 bytes, 220's return ~800 bytes; 1k should be enough
+	// HS200's return ~600 bytes, HS220's return ~800 bytes; 1k should be enough
+	// KP103s return larger packets, bump this to 1500 (normal wifi mtu)
+	// if we need more, we need to build a buffer and fill it over multiple reads
 	// see go-eiscp's method for how to improve this
-	data := make([]byte, 1024)
+	data := make([]byte, 1500)
 	n, err := conn.Read(data)
 	if err != nil {
 		log.Info.Println("Cannot read data from device:", err)

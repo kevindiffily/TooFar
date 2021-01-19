@@ -319,11 +319,19 @@ func sendUDP(ip string, cmd string) error {
 		return fmt.Errorf("udp conn not running")
 	}
 
+	repeats := config.Get().KasaBroadcasts
+	// unset, 0 (misconfigured) or 1 sends 1 packet
+	if repeats < 1 {
+		repeats = 1
+	}
+
 	payload := encrypt(cmd)
-	_, err := kasaUDPconn.WriteToUDP(payload, &net.UDPAddr{IP: net.ParseIP(ip), Port: 9999})
-	if err != nil {
-		log.Info.Printf("cannot send UDP command: %s", err.Error())
-		return err
+	for i := 0; i < repeats; i++ {
+		_, err := kasaUDPconn.WriteToUDP(payload, &net.UDPAddr{IP: net.ParseIP(ip), Port: 9999})
+		if err != nil {
+			log.Info.Printf("cannot send UDP command: %s", err.Error())
+			return err
+		}
 	}
 	return nil
 }

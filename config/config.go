@@ -14,7 +14,10 @@ type Config struct {
 	HCConfig       hc.Config // base HomeControl configuration
 	Discover       bool      // run Kasa & Shelly auto-discovery (does not work properly yet, do not enable)
 	KasaPullRate   int       // (seconds) how frequently to pull Kasa devices -- 0 to disable
-	ShellyPullRate int       // seconds - 0 to disable (TBD)
+	KasaBroadcasts int       // number of UDP broadcast packets to send - 1 is usually enough -- (unset/0/1 sends 1 packet)
+	KasaTimeout    int       // how long to wait for direct (TCP) pulls
+	ShellyPullRate int       // 0 to disable pulling
+	ShellyTimeout  int       // how long to wait for direct pulls
 }
 
 var runningConfig *Config
