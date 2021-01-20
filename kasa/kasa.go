@@ -28,10 +28,6 @@ const (
 	broadcast_sends = 1
 )
 
-var (
-	broadcastIP = "192.168.1.255"
-)
-
 // Platform is the platform handle for the Kasa stuff
 type Platform struct {
 	Running bool
@@ -256,13 +252,20 @@ func getSettingBroadcast() error {
 }
 
 func broadcastCmd(cmd string) error {
-	// TODO look up proper broadcast addresses
+	bcast, err := broadcastAddresses()
+	if err != nil {
+		return err
+	}
+
 	for i := 0; i < broadcast_sends; i++ {
-		err := sendUDP(broadcastIP, cmd)
-		if err != nil {
-			log.Info.Println(err.Error())
-			return err
+		for _, b := range bcast {
+			err := sendUDP(b.String(), cmd)
+			if err != nil {
+				log.Info.Println(err.Error())
+				return err
+			}
 		}
+		time.Sleep(time.Second)
 	}
 	return nil
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/brutella/hc/log"
 	"github.com/brutella/hc/service"
 	"github.com/brutella/hc/util"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -48,7 +49,6 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	if a.Info.Manufacturer == "" {
 		a.Info.Manufacturer = "OpenWeatherMap"
 	}
-	// if a.Info.ID == 0 { a.Info.ID = 1341 }
 
 	storage, err := util.NewFileStorage("serials")
 	if err != nil {
@@ -57,12 +57,22 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	serial := util.GetSerialNumberForAccessoryName(a.Info.Name, storage)
 	a.Info.SerialNumber = serial
 
+	// if an ID number isn't specified, use the serial number (consistent across restarts) to generate one
+	if a.Info.ID == 0 {
+		i, err := strconv.ParseUint(serial[0:8], 16, 64)
+		if err != nil {
+			log.Info.Println(err.Error())
+		}
+		a.Info.ID = i
+	}
+
 	a.Type = accessory.TypeSensor
 
 	owms[a.Name] = a
 
 	h, _ := platform.GetPlatform("HomeControl")
 	h.AddAccessory(a)
+	a.UpdateIDs()
 
 	a.Runner = actionRunner
 
