@@ -13,6 +13,8 @@ import (
 
 type TXNR686 struct {
 	*accessory.Accessory
+
+	Amp        *eiscp.Device
 	Television *TXNR686Svc
 	Speaker    *service.Speaker
 	Temp       *service.TemperatureSensor

@@ -45,12 +45,12 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 
 	a.Type = accessory.TypeTelevision
 
-	dev, err := eiscp.NewReceiver(a.IP)
+	var err error
+	dev, err := eiscp.NewReceiver(a.IP, true)
 	if err != nil {
 		log.Info.Printf(err.Error())
 		return
 	}
-	defer dev.Close()
 	deets, err := dev.GetDetails()
 	if err != nil {
 		log.Info.Printf("unable to pull for details: %s", err.Error())
@@ -80,12 +80,14 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	h, _ := platform.GetPlatform("HomeControl")
 	h.AddAccessory(a)
 
+	a.TXNR686.Amp = dev
+
 	a.TXNR686.Television.ConfiguredName.SetValue(a.Info.Name)
 	a.TXNR686.AddInputs(deets)
 	a.TXNR686.AddZones(deets)
 
 	// set initial power state
-	power, err := dev.GetPower()
+	power, err := a.TXNR686.Amp.GetPower()
 	if err != nil {
 		log.Info.Println(err.Error())
 	} else {
@@ -99,9 +101,7 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	}
 	a.TXNR686.Television.On.OnValueRemoteUpdate(func(newstate bool) {
 		log.Info.Printf("setting power to %t", newstate)
-		dev.Connect()
-		defer dev.Close()
-		res, err := dev.SetPower(newstate)
+		res, err := a.TXNR686.Amp.SetPower(newstate)
 		if err != nil {
 			log.Info.Println(err.Error())
 		}
@@ -109,7 +109,7 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	})
 
 	// set initial volume
-	vol, err := dev.GetVolume()
+	vol, err := a.TXNR686.Amp.GetVolume()
 	if err != nil {
 		log.Info.Println(err.Error())
 	} else {
@@ -118,16 +118,14 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	}
 	a.TXNR686.Volume.OnValueRemoteUpdate(func(newstate int) {
 		log.Info.Printf("setting volume to: %d", newstate)
-		dev.Connect()
-		defer dev.Close()
-		vol, err := dev.SetVolume(uint8(newstate))
+		vol, err := a.TXNR686.Amp.SetVolume(uint8(newstate))
 		if err != nil {
 			log.Info.Println(err.Error())
 		}
 		log.Info.Printf("set volume to: %d", vol)
 	})
 
-	mute, err := dev.GetMute()
+	mute, err := a.TXNR686.Amp.GetMute()
 	if err != nil {
 		log.Info.Println(err.Error())
 	} else {
@@ -136,9 +134,7 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	}
 	a.TXNR686.Speaker.Mute.OnValueRemoteUpdate(func(newstate bool) {
 		log.Info.Printf("setting mute to: %t", newstate)
-		dev.Connect()
-		defer dev.Close()
-		mute, err := dev.SetMute(newstate)
+		mute, err := a.TXNR686.Amp.SetMute(newstate)
 		if err != nil {
 			log.Info.Println(err.Error())
 		}
@@ -150,7 +146,7 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	})
 
 	// set initial temp data
-	cent, err := dev.GetTempData()
+	cent, err := a.TXNR686.Amp.GetTempData()
 	if err != nil {
 		log.Info.Println(err.Error())
 	}
@@ -162,16 +158,14 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 
 	a.TXNR686.Television.ActiveIdentifier.OnValueRemoteUpdate(func(newstate int) {
 		log.Info.Printf("Setting input to %02X", newstate)
-		dev.Connect()
-		defer dev.Close()
-		source, err := dev.SetSourceByCode(newstate)
+		source, err := a.TXNR686.Amp.SetSourceByCode(newstate)
 		if err != nil {
 			log.Info.Println(err.Error())
 		}
 		log.Info.Printf("set input to %+v", source.Response)
 	})
 
-	source, err := dev.GetSource()
+	source, err := a.TXNR686.Amp.GetSource()
 	if err != nil {
 		log.Info.Println(err.Error())
 	} else {
@@ -182,36 +176,33 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 
 	/// NPS does not respond if powered off
 	if power && source == eiscp.SrcNetwork {
-		nps, err := dev.GetNetworkPlayStatus()
+		nps, err := a.TXNR686.Amp.GetNetworkPlayStatus()
 		log.Info.Printf("setting CurrentMediaState to: %+v", nps)
 		if err != nil && nps != nil {
 			switch nps.State {
 			case "Play":
 				a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStatePlay)
-				a.TXNR686.Television.TargetMediaState.SetValue(characteristic.TargetMediaStatePlay)
+				// a.TXNR686.Television.TargetMediaState.SetValue(characteristic.TargetMediaStatePlay)
 			case "Stop":
 				a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStateStop)
-				a.TXNR686.Television.TargetMediaState.SetValue(characteristic.TargetMediaStateStop)
+				// a.TXNR686.Television.TargetMediaState.SetValue(characteristic.TargetMediaStateStop)
 			case "Pause":
 				a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStatePause)
-				a.TXNR686.Television.TargetMediaState.SetValue(characteristic.TargetMediaStatePause)
+				// a.TXNR686.Television.TargetMediaState.SetValue(characteristic.TargetMediaStatePause)
 			default:
 				a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStateUnknown)
 			}
 		}
+	} else {
+		a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStateUnknown)
 	}
 
 	a.TXNR686.Television.RemoteKey.OnValueRemoteUpdate(func(newstate int) {
-		d, err := eiscp.NewReceiver(a.IP)
-		if err != nil {
-			log.Info.Println(err.Error())
-			return
-		}
-		defer d.Close()
+		d := a.Amp
 		switch newstate {
 		case characteristic.RemoteKeyRewind:
 			log.Info.Println("TXNR686: RemoteKey: Rew")
-			if err := d.SetOnly("NTC", "REW"); err != nil {
+			if err := a.TXNR686.Amp.SetOnly("NTC", "REW"); err != nil {
 				log.Info.Println(err)
 			}
 		case characteristic.RemoteKeyFastForward:
@@ -277,41 +268,106 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		}
 	})
 
+	go func(a *tfaccessory.TFAccessory) {
+		iscpListener(a)
+	}(a)
+
 	a.Runner = runner
+}
+
+func iscpListener(a *tfaccessory.TFAccessory) {
+	for resp := range a.TXNR686.Amp.Responses {
+		v, err := resp.ParseResponseValue()
+		if err != nil {
+			log.Info.Println(err.Error())
+			continue
+		}
+		switch resp.Command {
+		case "PWR":
+			if a.TXNR686.Television.On.GetValue() != v.(bool) {
+				log.Info.Println("setting power from listener")
+				a.TXNR686.Television.On.SetValue(v.(bool))
+			}
+		case "MVL":
+			if int(v.(uint8)) != a.TXNR686.Television.Volume.GetValue() {
+				log.Info.Println("setting volume from listener")
+				a.TXNR686.Television.Volume.SetValue(int(v.(uint8)))
+			}
+		case "AMT":
+			if v.(bool) != a.TXNR686.Speaker.Mute.GetValue() {
+				log.Info.Println("setting mute from listener")
+				a.TXNR686.Speaker.Mute.SetValue(v.(bool))
+			}
+		case "TPD":
+			if float64(v.(int)) != a.TXNR686.Temp.CurrentTemperature.GetValue() {
+				log.Info.Println("setting temp from listener")
+				a.TXNR686.Temp.CurrentTemperature.SetValue(float64(v.(int)))
+			}
+		case "SLI":
+			// log.Info.Printf("SLI: %s\n", string(v.(eiscp.Source)))
+			i, _ := strconv.ParseInt(string(resp.Response), 16, 32)
+			if int(i) != a.TXNR686.Television.ActiveIdentifier.GetValue() {
+				log.Info.Println("setting source from listener")
+				a.TXNR686.Television.ActiveIdentifier.SetValue(int(i))
+				a.TXNR686.Television.ConfiguredName.SetValue(fmt.Sprintf("%s:%s", a.Info.Name, a.TXNR686.Sources[int(i)]))
+			}
+		case "NRI":
+			// log.Info.Printf("ignoring: %s\n", resp.Command)
+		case "NJI":
+			// log.Info.Printf("ignoring: %s\n", resp.Command)
+		case "NPS":
+			nps := v.(eiscp.NetworkPlayStatus)
+			switch nps.State {
+			case "Play":
+				if a.TXNR686.Television.CurrentMediaState.GetValue() != characteristic.CurrentMediaStatePlay {
+					a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStatePlay)
+					// a.TXNR686.Television.TargetMediaState.SetValue(characteristic.TargetMediaStatePlay)
+				}
+			case "Stop":
+				if a.TXNR686.Television.CurrentMediaState.GetValue() != characteristic.CurrentMediaStateStop {
+					a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStateStop)
+					// a.TXNR686.Television.TargetMediaState.SetValue(characteristic.TargetMediaStateStop)
+				}
+			case "Pause":
+				if a.TXNR686.Television.CurrentMediaState.GetValue() != characteristic.CurrentMediaStatePause {
+					a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStatePause)
+					// a.TXNR686.Television.TargetMediaState.SetValue(characteristic.TargetMediaStatePause)
+				}
+			default:
+				a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStateUnknown)
+			}
+		default:
+			log.Info.Printf("unhandled response on listener: %s %+v\n", resp.Command, v)
+		}
+	}
 }
 
 func runner(a *tfaccessory.TFAccessory, d *action.Action) {
 	// log.Info.Printf("in onkyo action runner: %+v", d)
-	dev, err := eiscp.NewReceiver(a.IP)
-	if err != nil {
-		log.Info.Printf(err.Error())
-		return
-	}
-	defer dev.Close()
 	switch d.Verb {
 	case "Stop":
 		log.Info.Printf("called stop")
-		dev.SetNetworkPlayStatus("Sxx")
+		a.Amp.SetNetworkPlayStatus("Sxx")
 		a.TXNR686.Television.Active.SetValue(0)
 		a.TXNR686.VolumeActive.SetValue(0)
 	case "TuneInPreset":
 		// http://vtochq-it.blogspot.com/2018/12/onkyo-pioneer-network-remote-control.html
 		// log.Info.Printf("setting preset to %s", d.Value)
 		if a.TXNR686.Television.On.GetValue() {
-			dev.SetPower(true)
+			a.TXNR686.Amp.SetPower(true)
 			a.TXNR686.Television.On.SetValue(true)
 			a.TXNR686.Television.Active.SetValue(1)
 			a.TXNR686.VolumeActive.SetValue(1)
 			time.Sleep(time.Second)
 		}
 
-		source, err := dev.GetSource()
+		source, err := a.TXNR686.Amp.GetSource()
 		if err != nil {
 			log.Info.Println(err.Error())
 			return
 		}
 		if source != eiscp.SrcNetwork {
-			_, err := dev.SetSource(eiscp.SrcNetwork)
+			_, err := a.TXNR686.Amp.SetSource(eiscp.SrcNetwork)
 			if err != nil {
 				log.Info.Println(err.Error())
 				return
@@ -323,14 +379,14 @@ func runner(a *tfaccessory.TFAccessory, d *action.Action) {
 		a.TXNR686.Television.ActiveIdentifier.SetValue(int(i))
 		a.TXNR686.Television.ConfiguredName.SetValue(fmt.Sprintf("%s:%s", a.Info.Name, a.TXNR686.Sources[int(i)]))
 		log.Info.Println("setting to tuneIN radio")
-		dev.SetNetworkServiceTuneIn()
+		a.TXNR686.Amp.SetNetworkServiceTuneIn()
 		time.Sleep(time.Second * 3)
 		log.Info.Println("setting presets screen")
-		dev.SelectNetworkListItem(1) // first item in the list is "Presets"
+		a.TXNR686.Amp.SelectNetworkListItem(1) // first item in the list is "Presets"
 		time.Sleep(time.Second * 3)
 		log.Info.Printf("setting to selected preset: %s", d.Value)
 		pi, _ := strconv.Atoi(d.Value)
-		dev.SelectNetworkListItem(pi)
+		a.TXNR686.Amp.SelectNetworkListItem(pi)
 	default:
 		log.Info.Printf("unknown verb %s (valid: TuneInPreset, Stop)", d.Verb)
 	}
@@ -353,91 +409,35 @@ func (o Platform) Background() {
 
 func (o Platform) backgroundPuller() {
 	for _, a := range onkyos {
-		dev, err := eiscp.NewReceiver(a.IP)
-		if err != nil {
-			log.Info.Printf(err.Error())
-			return
-		}
-		defer dev.Close()
-
-		power, err := dev.GetPower()
+		power, err := a.TXNR686.Amp.GetPower()
 		if err != nil {
 			log.Info.Println(err.Error())
-		} else {
-			p := 0
-			if power {
-				p = 1
-			}
-			if power != a.TXNR686.Television.On.GetValue() {
-				a.TXNR686.Television.Active.SetValue(p)
-				a.TXNR686.VolumeActive.SetValue(p)
-				a.TXNR686.Television.On.SetValue(power)
-			}
 		}
 
-		cent, err := dev.GetTempData()
+		_, err = a.TXNR686.Amp.GetTempData()
 		if err != nil {
 			log.Info.Println(err.Error())
-		} else {
-			cint, err := strconv.Atoi(cent)
-			if err != nil {
-				cint = 20
-			}
-			a.TXNR686.Temp.CurrentTemperature.SetValue(float64(cint))
 		}
 
-		vol, err := dev.GetVolume()
+		_, err = a.TXNR686.Amp.GetVolume()
 		if err != nil {
 			log.Info.Println(err.Error())
-		} else {
-			if int(vol) != a.TXNR686.Television.Volume.GetValue() {
-				a.TXNR686.Television.Volume.SetValue(int(vol))
-			}
 		}
 
-		mute, err := dev.GetMute()
+		_, err = a.TXNR686.Amp.GetMute()
 		if err != nil {
 			log.Info.Println(err.Error())
-		} else {
-			if mute != a.TXNR686.Speaker.Mute.GetValue() {
-				a.TXNR686.Speaker.Mute.SetValue(mute)
-			}
 		}
 
-		source, err := dev.GetSource()
+		source, err := a.TXNR686.Amp.GetSource()
 		if err != nil {
 			log.Info.Println(err.Error())
-		} else {
-			i, _ := strconv.ParseInt(string(source), 16, 32)
-			if int(i) != a.TXNR686.Television.ActiveIdentifier.GetValue() {
-				a.TXNR686.Television.ActiveIdentifier.SetValue(int(i))
-				a.TXNR686.Television.ConfiguredName.SetValue(fmt.Sprintf("%s:%s", a.Info.Name, a.TXNR686.Sources[int(i)]))
-			}
 		}
 
 		if power && source == eiscp.SrcNetwork {
-			nps, err := dev.GetNetworkPlayStatus()
-			// log.Info.Printf("setting CurrentMediaState to: %+v", nps)
-			if err != nil && nps != nil {
-				switch nps.State {
-				case "Play":
-					if a.TXNR686.Television.CurrentMediaState.GetValue() != characteristic.CurrentMediaStatePlay {
-						a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStatePlay)
-						a.TXNR686.Television.TargetMediaState.SetValue(characteristic.TargetMediaStatePlay)
-					}
-				case "Stop":
-					if a.TXNR686.Television.CurrentMediaState.GetValue() != characteristic.CurrentMediaStateStop {
-						a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStateStop)
-						a.TXNR686.Television.TargetMediaState.SetValue(characteristic.TargetMediaStateStop)
-					}
-				case "Pause":
-					if a.TXNR686.Television.CurrentMediaState.GetValue() != characteristic.CurrentMediaStatePause {
-						a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStatePause)
-						a.TXNR686.Television.TargetMediaState.SetValue(characteristic.TargetMediaStatePause)
-					}
-				default:
-					a.TXNR686.Television.CurrentMediaState.SetValue(characteristic.CurrentMediaStateUnknown)
-				}
+			_, err := a.TXNR686.Amp.GetNetworkPlayStatus()
+			if err != nil {
+				log.Info.Println(err.Error())
 			}
 		}
 	}

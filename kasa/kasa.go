@@ -135,6 +135,14 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	log.Info.Printf("adding [%s]: [%s]", a.Info.Name, a.Info.Model)
 	// add to HC for GUI
 	hc.AddAccessory(a)
+	a.Accessory.Info.Name.OnValueRemoteUpdate(func(newname string) {
+		log.Info.Print("setting alias to [%s]", newname)
+		err := setRelayAlias(a, newname)
+		if err != nil {
+			log.Info.Println(err.Error())
+			return
+		}
+	})
 
 	// kasas are indexed by IP address
 	kasas.mu.Lock()
@@ -182,9 +190,18 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 			outlet := a.KP303.Outlets[i]
 			outlet.AddCharacteristic(n.Characteristic)
 
+			l := i // local-only copy for this func
+			n.OnValueRemoteUpdate(func(newname string) {
+				log.Info.Print("setting alias to [%s]", newname)
+				err := setChildRelayAlias(a, settings.Children[l].ID, newname)
+				if err != nil {
+					log.Info.Println(err.Error())
+					return
+				}
+			})
+
 			outlet.On.SetValue(settings.Children[i].RelayState > 0)
 			outlet.OutletInUse.SetValue(settings.Children[i].RelayState > 0)
-			l := i // local-only copy for this func
 			outlet.On.OnValueRemoteUpdate(func(newstate bool) {
 				log.Info.Printf("setting [%s].[%d] to [%t] from KP303 handler", a.Name, l, newstate)
 				err := setChildRelayState(a, settings.Children[l].ID, newstate)
@@ -217,6 +234,26 @@ func setChildRelayState(a *tfaccessory.TFAccessory, childID string, newstate boo
 		state = 1
 	}
 	cmd := fmt.Sprintf(`{"context":{"child_ids":["%s"]},"system":{"set_relay_state":{"state":%d}}}`, childID, state)
+	err := sendUDP(a.IP, cmd)
+	if err != nil {
+		log.Info.Println(err.Error())
+		return err
+	}
+	return nil
+}
+
+func setRelayAlias(a *tfaccessory.TFAccessory, newname string) error {
+	cmd := fmt.Sprintf(`{"system":{"set_alias":{"alias":"%s"}}}`, newname)
+	err := sendUDP(a.IP, cmd)
+	if err != nil {
+		log.Info.Println(err.Error())
+		return err
+	}
+	return nil
+}
+
+func setChildRelayAlias(a *tfaccessory.TFAccessory, childID string, newname string) error {
+	cmd := fmt.Sprintf(`{"context":{"child_ids":["%s"]},"system":{"set_alias":{"alias":"%s"}}}`, childID, newname)
 	err := sendUDP(a.IP, cmd)
 	if err != nil {
 		log.Info.Println(err.Error())
