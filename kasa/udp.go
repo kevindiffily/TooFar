@@ -51,7 +51,7 @@ func doUDPresponse(ip, res string) {
 				sw.Switch.On.SetValue(r.RelayState > 0)
 			}
 		case *devices.HS220:
-			hs := a.Device.(devices.HS220)
+			hs := a.Device.(*devices.HS220)
 			if hs.Lightbulb.On.GetValue() != (r.RelayState > 0) {
 				log.Info.Printf("updating HomeKit: [%s]:[%s] relay %d", a.IP, r.Alias, r.RelayState)
 				hs.Lightbulb.On.SetValue(r.RelayState > 0)
@@ -61,7 +61,7 @@ func doUDPresponse(ip, res string) {
 				hs.Lightbulb.Brightness.SetValue(r.Brightness)
 			}
 		case *devices.KP303:
-			kp := a.Device.(devices.KP303)
+			kp := a.Device.(*devices.KP303)
 			for i := 0; i < len(kp.Outlets); i++ {
 				if kp.Outlets[i].On.GetValue() != (r.Children[i].RelayState > 0) {
 					log.Info.Printf("updating HomeKit: [%s]:[%s] relay %d", a.IP, r.Children[i].Alias, r.Children[i].RelayState)
@@ -73,15 +73,15 @@ func doUDPresponse(ip, res string) {
 		return
 	}
 
-	/* if res == `{"system":{"set_relay_state":{"err_code":0}}}` {
-		log.Info.Printf("[%s] relay state changed", a.Name)
+	if res == `{"system":{"set_relay_state":{"err_code":0}}}` {
+		// log.Info.Printf("[%s] relay state changed", a.Name)
 		return
 	}
 
 	if res == `{"smartlife.iot.dimmer":{"set_brightness":{"err_code":0}}}` {
-		log.Info.Printf("[%s] brightness changed", a.Name)
+		// log.Info.Printf("[%s] brightness changed", a.Name)
 		return
-	} */
+	}
 
-	fmt.Printf("unhandled kasa response [%s] %s", ip, res)
+	fmt.Printf("unhandled kasa response [%s] %s\n", ip, res)
 }

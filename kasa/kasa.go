@@ -153,7 +153,7 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	switch a.Device.(type) {
 	case *accessory.Switch:
 		// startup value
-		sw := a.Device.(accessory.Switch)
+		sw := a.Device.(*accessory.Switch)
 		sw.Switch.On.SetValue(settings.RelayState > 0)
 
 		// install callbacks: if we get an update from HC, deal with it

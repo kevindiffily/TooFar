@@ -190,8 +190,6 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 		}
 	})
 
-	log.Info.Printf("Added: %T: %+v", a.Device, a.Device)
-
 	hcs[a.Name] = a
 }
 
