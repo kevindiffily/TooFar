@@ -11,6 +11,7 @@ import (
 	// "github.com/brutella/hc/util"
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
 	"github.com/cloudkucooland/toofar/config"
+	"github.com/cloudkucooland/toofar/devices"
 	"github.com/cloudkucooland/toofar/platform"
 	"net"
 	"sync"
@@ -149,12 +150,14 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	kasas.ks[a.IP] = a
 	kasas.mu.Unlock()
 
-	if a.Switch != nil {
+	switch a.Device.(type) {
+	case *accessory.Switch:
 		// startup value
-		a.Switch.Switch.On.SetValue(settings.RelayState > 0)
+		sw := a.Device.(accessory.Switch)
+		sw.Switch.On.SetValue(settings.RelayState > 0)
 
 		// install callbacks: if we get an update from HC, deal with it
-		a.Switch.Switch.On.OnValueRemoteUpdate(func(newstate bool) {
+		sw.Switch.On.OnValueRemoteUpdate(func(newstate bool) {
 			log.Info.Printf("setting [%s] to [%t] from Kasa switch handler", a.Name, newstate)
 			err := setRelayState(a, newstate)
 			if err != nil {
@@ -162,10 +165,10 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 				return
 			}
 		})
-	}
-	if a.HS220 != nil {
-		a.HS220.Lightbulb.On.SetValue(settings.RelayState > 0)
-		a.HS220.Lightbulb.On.OnValueRemoteUpdate(func(newstate bool) {
+	case *devices.HS220:
+		hs := a.Device.(*devices.HS220)
+		hs.Lightbulb.On.SetValue(settings.RelayState > 0)
+		hs.Lightbulb.On.OnValueRemoteUpdate(func(newstate bool) {
 			log.Info.Printf("setting [%s] to [%t] from HS220 handler", a.Name, newstate)
 			err := setRelayState(a, newstate)
 			if err != nil {
@@ -173,8 +176,8 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 				return
 			}
 		})
-		a.HS220.Lightbulb.Brightness.SetValue(settings.Brightness)
-		a.HS220.Lightbulb.Brightness.OnValueRemoteUpdate(func(newval int) {
+		hs.Lightbulb.Brightness.SetValue(settings.Brightness)
+		hs.Lightbulb.Brightness.OnValueRemoteUpdate(func(newval int) {
 			log.Info.Printf("setting [%s] brightness [%d] from HS220 handler", a.Name, newval)
 			err := setBrightness(a, newval)
 			if err != nil {
@@ -182,12 +185,12 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 				return
 			}
 		})
-	}
-	if a.KP303 != nil {
-		for i := 0; i < len(a.KP303.Outlets); i++ {
+	case *devices.KP303:
+		kp := a.Device.(*devices.KP303)
+		for i := 0; i < len(kp.Outlets); i++ {
 			n := characteristic.NewName()
 			n.SetValue(settings.Children[i].Alias)
-			outlet := a.KP303.Outlets[i]
+			outlet := kp.Outlets[i]
 			outlet.AddCharacteristic(n.Characteristic)
 
 			l := i // local-only copy for this func

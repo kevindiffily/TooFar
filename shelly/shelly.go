@@ -60,6 +60,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{ "status": "bad" }`, http.StatusNotAcceptable)
 		return
 	}
+	sw := a.Device.(*accessory.Switch)
 
 	log.Info.Printf("from shelly [%s] to me: [%s]", r.RemoteAddr, cmd)
 	switch cmd {
@@ -72,13 +73,13 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		actions := a.MatchActions("Off")
 		runner.RunActions(actions)
 	case "outon": // turned on in software, update the GUI
-		if !a.Switch.Switch.On.GetValue() {
+		if !sw.Switch.On.GetValue() {
 			updateHCGUI(a, true)
 		}
 		actions := a.MatchActions("OutOn")
 		runner.RunActions(actions)
 	case "outoff": // turned on in software, update the GUI
-		if a.Switch.Switch.On.GetValue() {
+		if sw.Switch.On.GetValue() {
 			updateHCGUI(a, false)
 		}
 		actions := a.MatchActions("OutOff")
@@ -163,8 +164,9 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	h.AddAccessory(a)
 	updateHCGUI(a, settings.Relays[0].IsOn)
 
+	sw := a.Device.(*accessory.Switch)
 	// install callback: if we get an update from HC, deal with it
-	a.Switch.Switch.On.OnValueRemoteUpdate(func(newstate bool) {
+	sw.Switch.On.OnValueRemoteUpdate(func(newstate bool) {
 		log.Info.Printf("setting [%s] to [%t] from HC handler", a.Name, newstate)
 		state, err := setState(a, newstate)
 		if err != nil {
@@ -186,8 +188,9 @@ func shellyRunner(a *tfaccessory.TFAccessory, action *action.Action) {
 
 func updateHCGUI(a *tfaccessory.TFAccessory, newstate bool) {
 	log.Info.Printf("setting Shelly [%s] HC GUI to: %t", a.Name, newstate)
-	if a.Switch != nil {
-		a.Switch.Switch.On.SetValue(newstate)
+	if a.Device != nil {
+		sw := a.Device.(*accessory.Switch)
+		sw.Switch.On.SetValue(newstate)
 	}
 }
 
@@ -280,7 +283,7 @@ func (s Platform) backgroundPuller() {
 			log.Info.Println(err.Error())
 			continue
 		}
-		if a.Switch.Switch.On.GetValue() != r.IsOn {
+		if a.Device.(*accessory.Switch).Switch.On.GetValue() != r.IsOn {
 			updateHCGUI(a, r.IsOn)
 		}
 	}

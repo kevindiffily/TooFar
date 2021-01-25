@@ -6,7 +6,7 @@ import (
 	// "github.com/brutella/hc/characteristic"
 	"github.com/brutella/hc/log"
 	"github.com/cloudkucooland/toofar/action"
-	"github.com/cloudkucooland/toofar/devices"
+	// "github.com/cloudkucooland/toofar/devices"
 )
 
 // TFAccessory is the accessory type, TooFar's stuff, plus hc's stuff
@@ -23,20 +23,14 @@ type TFAccessory struct {
 	Info                   hcaccessory.Info // defined at https://github.com/brutella/hc/blob/master/accessory/accessory.go
 	*hcaccessory.Accessory                  // set when the device is added to HomeControl
 
-	// its easier to just hang on to pointers to these than trying to build an interface{}...
-	*hcaccessory.Switch
-	*hcaccessory.ColoredLightbulb
-	*hcaccessory.Lightbulb
-	*hcaccessory.Thermometer
-	*hcaccessory.Television
-	*devices.StatelessSwitch
-	*devices.HS220
-	*devices.TXNR686
-	*devices.TempLightbulb
-	*devices.LinuxSensors
-	*devices.KP303
+	// move these to the Device interface{}... now that things are a bit more stable
+	// *devices.TXNR686
+	// *devices.OnkyoController
+
+	Device interface{}
+
+	// make distinct OpenWeatherMap device type and move this there
 	*service.HumiditySensor
-	// *service.BridgingState
 
 	Actions []action.Action
 	Runner  func(*TFAccessory, *action.Action)

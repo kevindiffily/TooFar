@@ -66,22 +66,32 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	// add to HC for GUI
 	h, _ := platform.GetPlatform("HomeControl")
 	h.AddAccessory(a)
-	if a.LinuxSensors == nil {
+	if a.Device == nil {
 		log.Info.Println("unable to create LinuxSensors type")
 		return
 	}
 
+	switch a.Device.(type) {
+	case *devices.LinuxSensors:
+		//
+	default:
+		log.Info.Println("unable to create LinuxSensors type")
+		return
+	}
+
+	ls := a.Device.(*devices.LinuxSensors)
+
 	noprimary := true
 	for chip := range nfs.Chips {
 		scv := make(devices.SensorChipValues)
-		a.LinuxSensors.Chips[chip] = &scv
+		ls.Chips[chip] = &scv
 		for k, v := range nfs.Chips[chip] {
 			if k == "temp1" { // change this to a switch, handle fans and other temps as well
 				scv[k] = service.NewTemperatureSensor()
 				name := characteristic.NewName()
 				scv[k].AddCharacteristic(name.Characteristic)
 				name.SetValue(fmt.Sprintf("%s/%s", chip, k))
-				a.LinuxSensors.AddService(scv[k].Service)
+				ls.AddService(scv[k].Service)
 				if noprimary {
 					scv[k].Primary = true
 					noprimary = false
@@ -125,6 +135,9 @@ func (s Platform) backgroundPuller() {
 		return
 	}
 	a, _ := s.GetAccessory("OS Sensors")
+
+	ls := a.Device.(*devices.LinuxSensors)
+
 	for chip := range nfs.Chips {
 		for k, v := range nfs.Chips[chip] {
 			if k == "temp1" { // switch, handle various types...
@@ -133,7 +146,7 @@ func (s Platform) backgroundPuller() {
 					log.Info.Println(err)
 				} else {
 					// log.Info.Printf("setting %s/%s temp to: %f", chip, k, temp)
-					s, ok := a.LinuxSensors.Chips[chip]
+					s, ok := ls.Chips[chip]
 					if ok {
 						(*s)[k].CurrentTemperature.SetValue(temp)
 					}

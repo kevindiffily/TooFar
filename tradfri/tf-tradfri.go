@@ -7,6 +7,7 @@ import (
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
 	"github.com/cloudkucooland/toofar/action"
 	"github.com/cloudkucooland/toofar/config"
+	"github.com/cloudkucooland/toofar/devices"
 	"github.com/cloudkucooland/toofar/platform"
 
 	"fmt"
@@ -109,13 +110,6 @@ func (tp Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 			lightbulbLogic(&newDevice, d)
 		case DeviceTypePlug:
 			newDevice.Type = accessory.TypeOutlet
-			newDevice.Switch.Switch.On.OnValueRemoteUpdate(func(newstate bool) {
-				log.Info.Printf("setting [%s] to [%t] from Tradfri-Device lightbulb handler", newDevice.Name, newstate)
-				_, err := tradfriClient.PutDevicePower(newDevice.Name, newstate)
-				if err != nil {
-					log.Info.Println(err.Error())
-				}
-			})
 			// h.AddAccessory
 		case DeviceTypeMotionSensor:
 			newDevice.Type = accessory.TypeSensor
@@ -151,9 +145,10 @@ func lightbulbLogic(newDevice *tfaccessory.TFAccessory, d model.Device) {
 }
 
 func lightbulbSimple(newDevice *tfaccessory.TFAccessory, d model.Device) {
-	newDevice.Lightbulb.Lightbulb.On.SetValue(d.LightControl[0].Power > 0)
+	lb := newDevice.Device.(*accessory.Lightbulb)
+	lb.Lightbulb.On.SetValue(d.LightControl[0].Power > 0)
 	// handlers
-	newDevice.Lightbulb.Lightbulb.On.OnValueRemoteUpdate(func(newstate bool) {
+	lb.Lightbulb.On.OnValueRemoteUpdate(func(newstate bool) {
 		log.Info.Printf("Tradfri-Device Simple Lightbulb handler setting [%s] to [%t]", newDevice.Name, newstate)
 		_, err := tradfriClient.PutDevicePower(newDevice.Name, newstate)
 		if err != nil {
@@ -163,9 +158,10 @@ func lightbulbSimple(newDevice *tfaccessory.TFAccessory, d model.Device) {
 }
 
 func lightbulbTemp(newDevice *tfaccessory.TFAccessory, d model.Device) {
-	newDevice.TempLightbulb.Lightbulb.On.SetValue(d.LightControl[0].Power > 0)
+	tlb := newDevice.Device.(*devices.TempLightbulb)
+	tlb.Lightbulb.On.SetValue(d.LightControl[0].Power > 0)
 
-	newDevice.TempLightbulb.Lightbulb.On.OnValueRemoteUpdate(func(newstate bool) {
+	tlb.Lightbulb.On.OnValueRemoteUpdate(func(newstate bool) {
 		log.Info.Printf("Tradfri-Device Temp Lightbulb handler setting [%s] to [%t]", newDevice.Name, newstate)
 		_, err := tradfriClient.PutDevicePower(newDevice.Name, newstate)
 		if err != nil {
@@ -174,8 +170,8 @@ func lightbulbTemp(newDevice *tfaccessory.TFAccessory, d model.Device) {
 	})
 
 	dv := int(mapRange(float64(d.LightControl[0].Dimmer), 0, 254, 0, 100))
-	newDevice.TempLightbulb.Lightbulb.Brightness.SetValue(dv)
-	newDevice.TempLightbulb.Lightbulb.Brightness.OnValueRemoteUpdate(func(newval int) {
+	tlb.Lightbulb.Brightness.SetValue(dv)
+	tlb.Lightbulb.Brightness.OnValueRemoteUpdate(func(newval int) {
 		log.Info.Printf("Tradfri-Device Temp Lightbulb handler setting [%s] brightness: %d", newDevice.Name, newval)
 		val := newval * 255 / 100
 		_, err := tradfriClient.PutDeviceDimming(newDevice.Name, val)
@@ -183,8 +179,8 @@ func lightbulbTemp(newDevice *tfaccessory.TFAccessory, d model.Device) {
 			log.Info.Println(err.Error())
 		}
 	})
-	newDevice.TempLightbulb.Lightbulb.ColorTemperature.SetValue(dv)
-	newDevice.TempLightbulb.Lightbulb.ColorTemperature.OnValueRemoteUpdate(func(newval int) {
+	tlb.Lightbulb.ColorTemperature.SetValue(dv)
+	tlb.Lightbulb.ColorTemperature.OnValueRemoteUpdate(func(newval int) {
 		// this is right at the extremes and wrong in the middle, which is fine with me
 		kelvin := int(mapRange(float64(newval), float64(140), float64(500), float64(7142), float64(2000)))
 		log.Info.Printf("Tradfri-Device Temp Lightbulb handler setting [%s] temperature: %d (%d K) ", newDevice.Name, newval, kelvin)
@@ -200,23 +196,25 @@ func lightbulbTemp(newDevice *tfaccessory.TFAccessory, d model.Device) {
 }
 
 func lightbulbHSL(newDevice *tfaccessory.TFAccessory, d model.Device) {
-	newDevice.ColoredLightbulb.Lightbulb.On.SetValue(d.LightControl[0].Power > 0)
+	hsl := newDevice.Device.(*accessory.ColoredLightbulb)
+
+	hsl.Lightbulb.On.SetValue(d.LightControl[0].Power > 0)
 	dv := int(mapRange(float64(d.LightControl[0].Dimmer), 0, 254, 0, 100))
-	newDevice.ColoredLightbulb.Lightbulb.Brightness.SetValue(dv)
+	hsl.Lightbulb.Brightness.SetValue(dv)
 	dhue := mapRange(float64(d.LightControl[0].Hue), 0, 65279, 0, 360)
-	newDevice.ColoredLightbulb.Lightbulb.Hue.SetValue(dhue)
+	hsl.Lightbulb.Hue.SetValue(dhue)
 	dsat := mapRange(float64(d.LightControl[0].Saturation), 0, 65279, 0, 100)
-	newDevice.ColoredLightbulb.Lightbulb.Saturation.SetValue(dsat)
+	hsl.Lightbulb.Saturation.SetValue(dsat)
 
 	// handlers
-	newDevice.ColoredLightbulb.Lightbulb.On.OnValueRemoteUpdate(func(newstate bool) {
+	hsl.Lightbulb.On.OnValueRemoteUpdate(func(newstate bool) {
 		log.Info.Printf("Tradfri-Device HSL handler setting [%s] to [%t]", newDevice.Name, newstate)
 		_, err := tradfriClient.PutDevicePower(newDevice.Name, newstate)
 		if err != nil {
 			log.Info.Println(err.Error())
 		}
 	})
-	newDevice.ColoredLightbulb.Lightbulb.Brightness.OnValueRemoteUpdate(func(newval int) {
+	hsl.Lightbulb.Brightness.OnValueRemoteUpdate(func(newval int) {
 		log.Info.Printf("Tradfri-Device HSL handler setting [%s] brightness: %d", newDevice.Name, newval)
 		val := newval * 255 / 100
 		_, err := tradfriClient.PutDeviceDimming(newDevice.Name, val)
@@ -224,7 +222,7 @@ func lightbulbHSL(newDevice *tfaccessory.TFAccessory, d model.Device) {
 			log.Info.Println(err.Error())
 		}
 	})
-	newDevice.ColoredLightbulb.Lightbulb.Hue.OnValueRemoteUpdate(func(newval float64) {
+	hsl.Lightbulb.Hue.OnValueRemoteUpdate(func(newval float64) {
 		log.Info.Printf("Tradfri-Device HSL handler setting [%s] hue: %f", newDevice.Name, newval)
 		dev, err := tradfriClient.GetDevice(newDevice.Name)
 		if err != nil {
@@ -240,7 +238,7 @@ func lightbulbHSL(newDevice *tfaccessory.TFAccessory, d model.Device) {
 			log.Info.Println(err.Error())
 		}
 	})
-	newDevice.ColoredLightbulb.Lightbulb.Saturation.OnValueRemoteUpdate(func(newval float64) {
+	hsl.Lightbulb.Saturation.OnValueRemoteUpdate(func(newval float64) {
 		log.Info.Printf("Tradfri-Device HSL handler setting [%s] saturation: %f", newDevice.Name, newval)
 		dev, err := tradfriClient.GetDevice(newDevice.Name)
 		if err != nil {
@@ -266,7 +264,7 @@ func runner(a *tfaccessory.TFAccessory, action *action.Action) {
 		target, _ := strconv.Atoi(action.Value)
 
 		// if it is already at the target, set to full-on
-		bv := a.ColoredLightbulb.Lightbulb.Brightness.GetValue()
+		bv := a.Device.(*accessory.ColoredLightbulb).Lightbulb.Brightness.GetValue()
 		log.Info.Printf("current brightness: %d, target: %d", bv, target)
 		if bv == target {
 			log.Info.Printf("adjusting target too 99")
@@ -280,11 +278,11 @@ func runner(a *tfaccessory.TFAccessory, action *action.Action) {
 		}
 
 		// update GUI
-		if a.ColoredLightbulb != nil {
-			a.ColoredLightbulb.Lightbulb.Brightness.SetValue(target)
-		}
-		if a.TempLightbulb != nil {
-			a.TempLightbulb.Lightbulb.Brightness.SetValue(target)
+		switch a.Device.(type) {
+		case *accessory.ColoredLightbulb:
+			a.Device.(*accessory.ColoredLightbulb).Lightbulb.Brightness.SetValue(target)
+		case *devices.TempLightbulb:
+			a.Device.(*devices.TempLightbulb).Lightbulb.Brightness.SetValue(target)
 		}
 	case "Toggle":
 		log.Info.Println("toggle verb called")
@@ -357,37 +355,33 @@ func tradfriUpdateAll() {
 			continue
 		}
 
-		switch d.Type {
-		case DeviceTypeLightbulb:
-			if tdd.ColoredLightbulb != nil {
-				if tdd.ColoredLightbulb.Lightbulb.On.GetValue() != (d.LightControl[0].Power > 0) {
-					tdd.ColoredLightbulb.Lightbulb.On.SetValue(d.LightControl[0].Power > 0)
-				}
-				dv := int(mapRange(float64(d.LightControl[0].Dimmer), 0, 254, 0, 100))
-				tdd.ColoredLightbulb.Lightbulb.Brightness.SetValue(dv)
-				dhue := mapRange(float64(d.LightControl[0].Hue), 0, 65279, 0, 360)
-				tdd.ColoredLightbulb.Lightbulb.Hue.SetValue(dhue)
-				dsat := mapRange(float64(d.LightControl[0].Saturation), 0, 65279, 0, 100)
-				tdd.ColoredLightbulb.Lightbulb.Saturation.SetValue(dsat)
+		switch tdd.Device.(type) {
+		case *accessory.ColoredLightbulb:
+			clb := tdd.Device.(*accessory.ColoredLightbulb)
+			if clb.Lightbulb.On.GetValue() != (d.LightControl[0].Power > 0) {
+				clb.Lightbulb.On.SetValue(d.LightControl[0].Power > 0)
 			}
-			if tdd.Lightbulb != nil {
-				if tdd.Lightbulb.Lightbulb.On.GetValue() != (d.LightControl[0].Power > 0) {
-					tdd.Lightbulb.Lightbulb.On.SetValue(d.LightControl[0].Power > 0)
-				}
+			dv := int(mapRange(float64(d.LightControl[0].Dimmer), 0, 254, 0, 100))
+			clb.Lightbulb.Brightness.SetValue(dv)
+			dhue := mapRange(float64(d.LightControl[0].Hue), 0, 65279, 0, 360)
+			clb.Lightbulb.Hue.SetValue(dhue)
+			dsat := mapRange(float64(d.LightControl[0].Saturation), 0, 65279, 0, 100)
+			clb.Lightbulb.Saturation.SetValue(dsat)
+		case *accessory.Lightbulb:
+			lb := tdd.Device.(*accessory.Lightbulb)
+			if lb.Lightbulb.On.GetValue() != (d.LightControl[0].Power > 0) {
+				lb.Lightbulb.On.SetValue(d.LightControl[0].Power > 0)
 			}
-			if tdd.TempLightbulb != nil {
-				if tdd.TempLightbulb.Lightbulb.On.GetValue() != (d.LightControl[0].Power > 0) {
-					tdd.TempLightbulb.Lightbulb.On.SetValue(d.LightControl[0].Power > 0)
-				}
-				dv := int(mapRange(float64(d.LightControl[0].Dimmer), 0, 254, 0, 100))
-				if tdd.TempLightbulb.Lightbulb.Brightness.GetValue() != dv {
-					tdd.TempLightbulb.Lightbulb.Brightness.SetValue(dv)
-					// if you change the color in Ikea's app, ... well ... I can't convert from HSL to Kelvin yet
-				}
+		case *devices.TempLightbulb:
+			tlb := tdd.Device.(*devices.TempLightbulb)
+			if tlb.Lightbulb.On.GetValue() != (d.LightControl[0].Power > 0) {
+				tlb.Lightbulb.On.SetValue(d.LightControl[0].Power > 0)
 			}
-		case DeviceTypePlug:
-			// this is wrong -- don't have a plug to test, just wanted something here for the switch to make sense
-			// tdd.ColoredLightbulb.Lightbulb.On.SetValue(d.LightControl[0].Power > 0)
+			dv := int(mapRange(float64(d.LightControl[0].Dimmer), 0, 254, 0, 100))
+			if tlb.Lightbulb.Brightness.GetValue() != dv {
+				tlb.Lightbulb.Brightness.SetValue(dv)
+				// if you change the color in Ikea's app, ... well ... I can't convert from HSL to Kelvin yet
+			}
 		}
 	}
 }

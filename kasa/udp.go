@@ -3,9 +3,11 @@ package kasa
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/brutella/hc/accessory"
 	"github.com/brutella/hc/log"
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
 	"github.com/cloudkucooland/toofar/config"
+	"github.com/cloudkucooland/toofar/devices"
 	"github.com/cloudkucooland/toofar/platform"
 	"strings"
 )
@@ -41,37 +43,37 @@ func doUDPresponse(ip, res string) {
 		// log.Info.Printf("%+v", kd)
 		r := kd.System.Sysinfo
 
-		if a.Switch != nil {
-			if a.Switch.Switch.On.GetValue() != (r.RelayState > 0) {
+		switch a.Device.(type) {
+		case *accessory.Switch:
+			sw := a.Device.(*accessory.Switch)
+			if sw.Switch.On.GetValue() != (r.RelayState > 0) {
 				log.Info.Printf("updating HomeKit: [%s]:[%s] relay %d\n", a.IP, r.Alias, r.RelayState)
-				a.Switch.Switch.On.SetValue(r.RelayState > 0)
+				sw.Switch.On.SetValue(r.RelayState > 0)
 			}
-		}
-
-		if a.HS220 != nil {
-			if a.HS220.Lightbulb.On.GetValue() != (r.RelayState > 0) {
+		case *devices.HS220:
+			hs := a.Device.(devices.HS220)
+			if hs.Lightbulb.On.GetValue() != (r.RelayState > 0) {
 				log.Info.Printf("updating HomeKit: [%s]:[%s] relay %d", a.IP, r.Alias, r.RelayState)
-				a.HS220.Lightbulb.On.SetValue(r.RelayState > 0)
+				hs.Lightbulb.On.SetValue(r.RelayState > 0)
 			}
-			if a.HS220.Lightbulb.Brightness.GetValue() != r.Brightness {
+			if hs.Lightbulb.Brightness.GetValue() != r.Brightness {
 				log.Info.Printf("updating HomeKit: [%s]:[%s] brightness %d", a.IP, r.Alias, r.RelayState)
-				a.HS220.Lightbulb.Brightness.SetValue(r.Brightness)
+				hs.Lightbulb.Brightness.SetValue(r.Brightness)
 			}
-		}
-
-		if a.KP303 != nil {
-			for i := 0; i < len(a.KP303.Outlets); i++ {
-				if a.KP303.Outlets[i].On.GetValue() != (r.Children[i].RelayState > 0) {
+		case *devices.KP303:
+			kp := a.Device.(devices.KP303)
+			for i := 0; i < len(kp.Outlets); i++ {
+				if kp.Outlets[i].On.GetValue() != (r.Children[i].RelayState > 0) {
 					log.Info.Printf("updating HomeKit: [%s]:[%s] relay %d", a.IP, r.Children[i].Alias, r.Children[i].RelayState)
-					a.KP303.Outlets[i].On.SetValue(r.Children[0].RelayState > 0)
-					a.KP303.Outlets[i].OutletInUse.SetValue(r.Children[0].RelayState > 0)
+					kp.Outlets[i].On.SetValue(r.Children[0].RelayState > 0)
+					kp.Outlets[i].OutletInUse.SetValue(r.Children[0].RelayState > 0)
 				}
 			}
 		}
 		return
 	}
 
-	if res == `{"system":{"set_relay_state":{"err_code":0}}}` {
+	/* if res == `{"system":{"set_relay_state":{"err_code":0}}}` {
 		log.Info.Printf("[%s] relay state changed", a.Name)
 		return
 	}
@@ -79,7 +81,7 @@ func doUDPresponse(ip, res string) {
 	if res == `{"smartlife.iot.dimmer":{"set_brightness":{"err_code":0}}}` {
 		log.Info.Printf("[%s] brightness changed", a.Name)
 		return
-	}
+	} */
 
 	fmt.Printf("unhandled kasa response [%s] %s", ip, res)
 }

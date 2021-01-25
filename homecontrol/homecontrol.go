@@ -92,11 +92,12 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 	case accessory.TypeSwitch:
 		switch a.Info.Model {
 		case "KP303(US)":
-			a.KP303 = devices.NewKP303(a.Info)
-			a.Accessory = a.KP303.Accessory
+			kp := devices.NewKP303(a.Info)
+			a.Device = kp
+			a.Accessory = kp.Accessory
 			a.Runner = genericSwitchActionRunner
-			for i := 0; i < len(a.KP303.Outlets); i++ {
-				a.KP303.Outlets[i].On.OnValueRemoteUpdate(func(newval bool) {
+			for i := 0; i < len(kp.Outlets); i++ {
+				kp.Outlets[i].On.OnValueRemoteUpdate(func(newval bool) {
 					if newval {
 						actions := a.MatchActions("On")
 						runner.RunActions(actions)
@@ -106,11 +107,17 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 					}
 				})
 			}
+		case "onkyo-controller":
+			log.Info.Println("adding onkyo-controller")
+			oc := devices.NewOnkyoController(a.Info)
+			a.Device = oc
+			a.Accessory = oc.Accessory
 		default:
-			a.Switch = accessory.NewSwitch(a.Info)
-			a.Accessory = a.Switch.Accessory
+			d := accessory.NewSwitch(a.Info)
+			a.Device = d
+			a.Accessory = d.Accessory
 			a.Runner = genericSwitchActionRunner
-			a.Switch.Switch.On.OnValueRemoteUpdate(func(newval bool) {
+			d.Switch.On.OnValueRemoteUpdate(func(newval bool) {
 				if newval {
 					actions := a.MatchActions("On")
 					runner.RunActions(actions)
@@ -120,55 +127,57 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 				}
 			})
 		}
-	case accessory.TypeProgrammableSwitch:
-		a.StatelessSwitch = devices.NewStatelessSwitch(a.Info)
-		a.Accessory = a.StatelessSwitch.Accessory
-		a.StatelessSwitch.StatelessSwitch.ProgrammableSwitchEvent.SetValue(0)
-		a.Runner = statelessSwitchActionRunner
-		a.StatelessSwitch.StatelessSwitch.ProgrammableSwitchEvent.OnValueRemoteUpdate(func(newval int) {
-			log.Info.Printf("running stateless switch: %d", newval)
-		})
 	case accessory.TypeLightbulb:
 		switch a.Info.Model {
 		case "TRADFRI bulb E26 CWS opal 600lm":
-			a.ColoredLightbulb = accessory.NewColoredLightbulb(a.Info)
-			a.Accessory = a.ColoredLightbulb.Accessory
+			clb := accessory.NewColoredLightbulb(a.Info)
+			a.Device = clb
+			a.Accessory = clb.Accessory
 		case "HS220(US)":
-			a.HS220 = devices.NewHS220(a.Info)
-			a.Accessory = a.HS220.Accessory
+			hs := devices.NewHS220(a.Info)
+			a.Device = hs
+			a.Accessory = hs.Accessory
 		case "TRADFRI bulb E26 WS opal 980lm":
-			a.TempLightbulb = devices.NewTempLightbulb(a.Info)
-			a.Accessory = a.TempLightbulb.Accessory
+			tlb := devices.NewTempLightbulb(a.Info)
+			a.Device = tlb
+			a.Accessory = tlb.Accessory
 		case "LTD010":
-			a.TempLightbulb = devices.NewTempLightbulb(a.Info)
-			a.Accessory = a.TempLightbulb.Accessory
+			tlb := devices.NewTempLightbulb(a.Info)
+			a.Device = tlb
+			a.Accessory = tlb.Accessory
 		default:
 			log.Info.Printf("unknown lightbulb type, using generic: [%s]", a.Info.Model)
-			a.Lightbulb = accessory.NewLightbulb(a.Info)
-			a.Accessory = a.Lightbulb.Accessory
+			lb := accessory.NewLightbulb(a.Info)
+			a.Device = lb
+			a.Accessory = lb.Accessory
 		}
 	case accessory.TypeSensor:
 		switch a.Info.Model {
 		case "OS Sensors":
-			a.LinuxSensors = devices.NewLinuxSensors(a.Info)
-			a.Accessory = a.LinuxSensors.Accessory
+			a.Device = devices.NewLinuxSensors(a.Info)
+			a.Accessory = a.Device.(*devices.LinuxSensors).Accessory
 		default:
-			a.Thermometer = accessory.NewTemperatureSensor(a.Info, 20, -10, 55, 0.1)
-			a.Accessory = a.Thermometer.Accessory
+			a.Device = accessory.NewTemperatureSensor(a.Info, 20, -10, 55, 0.1)
+			a.Accessory = a.Device.(*accessory.Thermometer).Accessory
 		}
-	case accessory.TypeSecuritySystem:
-		a.Accessory = accessory.New(a.Info, a.Type)
+	/* case accessory.TypeSecuritySystem:
+	a.Accessory = accessory.New(a.Info, a.Type) */
 	case accessory.TypeTelevision:
 		switch a.Info.Model {
 		case "TX-NR686":
-			a.TXNR686 = devices.NewTXNR686(a.Info)
-			a.Accessory = a.TXNR686.Accessory
+			tx := devices.NewTXNR686(a.Info)
+			a.Device = tx
+			a.Accessory = tx.Accessory
 		default:
-			a.Television = accessory.NewTelevision(a.Info)
-			a.Accessory = a.Television.Accessory
+			log.Info.Printf("unknown television type, using generic: [%s]", a.Info.Model)
+			tv := accessory.NewTelevision(a.Info)
+			a.Device = tv
+			a.Accessory = tv.Accessory
 		}
 	default:
+		log.Info.Printf("unknown accessory type, using generic: [%s]", a.Info.Model)
 		a.Accessory = accessory.New(a.Info, a.Type)
+		a.Device = a.Accessory
 	}
 
 	a.Accessory.OnIdentify(func() {
@@ -180,6 +189,8 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 			}
 		}
 	})
+
+	log.Info.Printf("Added: %T: %+v", a.Device, a.Device)
 
 	hcs[a.Name] = a
 }
@@ -197,8 +208,4 @@ func (h HCPlatform) Background() {
 
 func genericSwitchActionRunner(a *tfaccessory.TFAccessory, action *action.Action) {
 	log.Info.Printf("generic switch action runner: %+v %+v", a, action)
-}
-
-func statelessSwitchActionRunner(a *tfaccessory.TFAccessory, action *action.Action) {
-	log.Info.Printf("stateless switch action runner: %+v %+v", a, action)
 }

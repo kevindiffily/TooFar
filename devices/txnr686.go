@@ -71,6 +71,7 @@ func NewTXNR686(info accessory.Info) *TXNR686 {
 	acc.Temp.Service.Primary = false
 	acc.AddService(acc.Temp.Service)
 	acc.Television.AddLinkedService(acc.Temp.Service) // does this do anything? it doesn't seem to hurt...
+	acc.Speaker.AddLinkedService(acc.Temp.Service)    // does this do anything? it doesn't seem to hurt...
 
 	acc.Sources = make(map[int]string)
 
@@ -173,7 +174,7 @@ func (t *TXNR686) AddInputs(nfi *eiscp.NRI) {
 		})
 		is.TargetVisibilityState.OnValueRemoteUpdate(func(newstate int) {
 			log.Info.Printf("%s TargetVisibilityState: %d", is.Name.GetValue(), newstate)
-			is.TargetVisibilityState.SetValue(newstate)  // not saved, but fine for now
+			// is.TargetVisibilityState.SetValue(newstate)  // not saved, but fine for now
 			is.CurrentVisibilityState.SetValue(newstate) // not saved, but fine for now
 		})
 		is.IsConfigured.OnValueRemoteUpdate(func(newstate int) {
@@ -212,37 +213,37 @@ func NewTXNR686Svc() *TXNR686Svc {
 	svc.On = characteristic.NewOn()
 	svc.AddCharacteristic(svc.On.Characteristic)
 	svc.On.OnValueRemoteUpdate(func(newstate bool) {
-		log.Info.Printf("TXNR686: On: %t", newstate)
+		log.Info.Printf("TXNR686: HC requested On: %t", newstate)
 	})
 
 	svc.Volume = characteristic.NewVolume()
 	svc.AddCharacteristic(svc.Volume.Characteristic)
 	svc.Volume.OnValueRemoteUpdate(func(newstate int) {
-		log.Info.Printf("TXNR686: Volume: %d", newstate)
+		log.Info.Printf("TXNR686: HC requested Volume: %d", newstate)
 	})
 
 	svc.StreamingStatus = characteristic.NewStreamingStatus()
 	svc.AddCharacteristic(svc.StreamingStatus.Characteristic)
 	svc.StreamingStatus.OnValueRemoteUpdate(func(newstate []byte) {
-		log.Info.Printf("TXNR686: StreamingStatus: %d", string(newstate))
+		log.Info.Printf("TXNR686: HC requested StreamingStatus: %d", string(newstate))
 	})
 
 	svc.Active = characteristic.NewActive()
 	svc.AddCharacteristic(svc.Active.Characteristic)
 	svc.Active.OnValueRemoteUpdate(func(newstate int) {
-		log.Info.Printf("TXNR686: Requested Active be set to: %d", newstate)
+		log.Info.Printf("TXNR686: HC requested Active: %d", newstate)
 	})
 
 	svc.ActiveIdentifier = characteristic.NewActiveIdentifier()
 	svc.AddCharacteristic(svc.ActiveIdentifier.Characteristic)
 	svc.ActiveIdentifier.OnValueRemoteUpdate(func(newstate int) {
-		log.Info.Printf("TXNR686: ActiveIdentifier: %d", newstate)
+		log.Info.Printf("TXNR686: HC requested ActiveIdentifier: %d", newstate)
 	})
 
 	svc.ConfiguredName = characteristic.NewConfiguredName()
 	svc.AddCharacteristic(svc.ConfiguredName.Characteristic)
 	svc.ActiveIdentifier.OnValueRemoteUpdate(func(newstate int) {
-		log.Info.Printf("TXNR686: ConfiguredName: %d", newstate)
+		log.Info.Printf("TXNR686: HC requested ConfiguredName: %d", newstate)
 	})
 
 	svc.SleepDiscoveryMode = characteristic.NewSleepDiscoveryMode()
@@ -251,19 +252,19 @@ func NewTXNR686Svc() *TXNR686Svc {
 	svc.Brightness = characteristic.NewBrightness()
 	svc.AddCharacteristic(svc.Brightness.Characteristic)
 	svc.Brightness.OnValueRemoteUpdate(func(newstate int) {
-		log.Info.Printf("TXNR686: Brightness: %d", newstate)
+		log.Info.Printf("TXNR686: HC requested Brightness: %d", newstate)
 	})
 
 	svc.ClosedCaptions = characteristic.NewClosedCaptions()
 	svc.AddCharacteristic(svc.ClosedCaptions.Characteristic)
 	svc.ClosedCaptions.OnValueRemoteUpdate(func(newstate int) {
-		log.Info.Printf("TXNR686: ClosedCaptions: %d", newstate)
+		log.Info.Printf("TXNR686: HC requested ClosedCaptions: %d", newstate)
 	})
 
 	svc.DisplayOrder = characteristic.NewDisplayOrder()
 	svc.AddCharacteristic(svc.DisplayOrder.Characteristic)
 	svc.DisplayOrder.OnValueRemoteUpdate(func(newstate []byte) {
-		log.Info.Printf("TXNR686: DisplayOrder: %s", string(newstate))
+		log.Info.Printf("TXNR686: HC requested DisplayOrder: %s", string(newstate))
 	})
 
 	svc.CurrentMediaState = characteristic.NewCurrentMediaState()
@@ -272,19 +273,19 @@ func NewTXNR686Svc() *TXNR686Svc {
 	svc.TargetMediaState = characteristic.NewTargetMediaState()
 	svc.AddCharacteristic(svc.TargetMediaState.Characteristic)
 	svc.TargetMediaState.OnValueRemoteUpdate(func(newstate int) {
-		log.Info.Printf("TXNR686: TargetMediaState: %d", newstate)
+		log.Info.Printf("TXNR686: HC requested TargetMediaState: %d", newstate)
 	})
 
 	svc.PictureMode = characteristic.NewPictureMode()
 	svc.AddCharacteristic(svc.PictureMode.Characteristic)
 	svc.PictureMode.OnValueRemoteUpdate(func(newstate int) {
-		log.Info.Printf("TXNR686: PictureMode: %d", newstate)
+		log.Info.Printf("TXNR686: HC requested PictureMode: %d", newstate)
 	})
 
 	svc.PowerModeSelection = characteristic.NewPowerModeSelection()
 	svc.AddCharacteristic(svc.PowerModeSelection.Characteristic)
 	svc.PowerModeSelection.OnValueRemoteUpdate(func(newstate int) {
-		log.Info.Printf("TXNR686: PowerModeSelection: %d", newstate)
+		log.Info.Printf("TXNR686: HC requested PowerModeSelection: %d", newstate)
 		svc.PowerModeSelection.SetValue(newstate)
 	})
 

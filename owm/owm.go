@@ -83,9 +83,10 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	}
 	w.CurrentByName(a.Username)
 	log.Info.Printf("%+v", w.Main)
-	a.Thermometer.TempSensor.CurrentTemperature.Description = "CurrentTemperature"
-	if a.Thermometer.TempSensor.CurrentTemperature.GetValue() != w.Main.Temp {
-		a.Thermometer.TempSensor.CurrentTemperature.SetValue(w.Main.Temp)
+	therm := a.Device.(*accessory.Thermometer)
+	therm.TempSensor.CurrentTemperature.Description = "CurrentTemperature"
+	if therm.TempSensor.CurrentTemperature.GetValue() != w.Main.Temp {
+		therm.TempSensor.CurrentTemperature.SetValue(w.Main.Temp)
 	}
 
 	a.HumiditySensor = service.NewHumiditySensor()
@@ -122,8 +123,9 @@ func (o Platform) backgroundPuller() {
 			log.Info.Println(err.Error())
 		}
 		w.CurrentByName(a.Username)
-		if a.Thermometer != nil && a.Thermometer.TempSensor.CurrentTemperature.GetValue() != w.Main.Temp {
-			a.Thermometer.TempSensor.CurrentTemperature.SetValue(w.Main.Temp)
+		therm := a.Device.(*accessory.Thermometer)
+		if therm.TempSensor.CurrentTemperature.GetValue() != w.Main.Temp {
+			therm.TempSensor.CurrentTemperature.SetValue(w.Main.Temp)
 		}
 		if a.HumiditySensor != nil && a.HumiditySensor.CurrentRelativeHumidity.GetValue() != float64(w.Main.Humidity) {
 			a.HumiditySensor.CurrentRelativeHumidity.SetValue(float64(w.Main.Humidity))
