@@ -1,5 +1,11 @@
-Fix Kasa discovery (adding discovered devices) -- would it be possible to move to my go-kasa library now?
+Soon:
+research using the TV source selector to OnkyoController for setting listening mode (etc?)
+Report status changes from Onkyo to OnkyoController
+Why doesn't adding the AirQuality sensor to the OWM device work?
+
+Later:
+Fix Kasa discovery (adding discovered devices) -- 99% done
 Improve LinuxSensors to support fans and other sensors
 Add Shelly discovery (once Kasa discovery is fixed)
-Figure out and add support for WifiCapabilities
+Figure out and add support for WifiCapabilities -- requres work in HomeControl -- No good docs out there
 
