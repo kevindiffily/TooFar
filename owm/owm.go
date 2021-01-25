@@ -6,11 +6,11 @@ import (
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
 	"github.com/cloudkucooland/toofar/action"
 	"github.com/cloudkucooland/toofar/config"
+	"github.com/cloudkucooland/toofar/devices"
 	"github.com/cloudkucooland/toofar/platform"
 
 	"github.com/brutella/hc/accessory"
 	"github.com/brutella/hc/log"
-	"github.com/brutella/hc/service"
 	"github.com/brutella/hc/util"
 	"strconv"
 	"sync"
@@ -47,8 +47,9 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		a.Info.Name = a.Username
 	}
 	if a.Info.Manufacturer == "" {
-		a.Info.Manufacturer = "OpenWeatherMap"
+		a.Info.Manufacturer = "TooFar"
 	}
+	a.Info.Model = "OpenWeatherMap"
 
 	storage, err := util.NewFileStorage("serials")
 	if err != nil {
@@ -83,17 +84,13 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	}
 	w.CurrentByName(a.Username)
 	log.Info.Printf("%+v", w.Main)
-	therm := a.Device.(*accessory.Thermometer)
-	therm.TempSensor.CurrentTemperature.Description = "CurrentTemperature"
-	if therm.TempSensor.CurrentTemperature.GetValue() != w.Main.Temp {
-		therm.TempSensor.CurrentTemperature.SetValue(w.Main.Temp)
+	owmdev := a.Device.(*devices.OpenWeatherMap)
+	if owmdev.TemperatureSensor.CurrentTemperature.GetValue() != w.Main.Temp {
+		owmdev.TemperatureSensor.CurrentTemperature.SetValue(w.Main.Temp)
 	}
 
-	a.HumiditySensor = service.NewHumiditySensor()
-	a.Accessory.AddService(a.HumiditySensor.Service)
-	a.HumiditySensor.CurrentRelativeHumidity.Description = "CurrentRelativeHumidity"
-	if a.HumiditySensor.CurrentRelativeHumidity.GetValue() != float64(w.Main.Humidity) {
-		a.HumiditySensor.CurrentRelativeHumidity.SetValue(float64(w.Main.Humidity))
+	if owmdev.HumiditySensor.CurrentRelativeHumidity.GetValue() != float64(w.Main.Humidity) {
+		owmdev.HumiditySensor.CurrentRelativeHumidity.SetValue(float64(w.Main.Humidity))
 	}
 }
 
@@ -123,12 +120,12 @@ func (o Platform) backgroundPuller() {
 			log.Info.Println(err.Error())
 		}
 		w.CurrentByName(a.Username)
-		therm := a.Device.(*accessory.Thermometer)
-		if therm.TempSensor.CurrentTemperature.GetValue() != w.Main.Temp {
-			therm.TempSensor.CurrentTemperature.SetValue(w.Main.Temp)
+		owmdev := a.Device.(*devices.OpenWeatherMap)
+		if owmdev.TemperatureSensor.CurrentTemperature.GetValue() != w.Main.Temp {
+			owmdev.TemperatureSensor.CurrentTemperature.SetValue(w.Main.Temp)
 		}
-		if a.HumiditySensor != nil && a.HumiditySensor.CurrentRelativeHumidity.GetValue() != float64(w.Main.Humidity) {
-			a.HumiditySensor.CurrentRelativeHumidity.SetValue(float64(w.Main.Humidity))
+		if owmdev.HumiditySensor.CurrentRelativeHumidity.GetValue() != float64(w.Main.Humidity) {
+			owmdev.HumiditySensor.CurrentRelativeHumidity.SetValue(float64(w.Main.Humidity))
 		}
 	}
 }

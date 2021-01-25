@@ -156,6 +156,9 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 		case "OS Sensors":
 			a.Device = devices.NewLinuxSensors(a.Info)
 			a.Accessory = a.Device.(*devices.LinuxSensors).Accessory
+		case "OpenWeatherMap":
+			a.Device = devices.NewOpenWeatherMap(a.Info)
+			a.Accessory = a.Device.(*devices.OpenWeatherMap).Accessory
 		default:
 			a.Device = accessory.NewTemperatureSensor(a.Info, 20, -10, 55, 0.1)
 			a.Accessory = a.Device.(*accessory.Thermometer).Accessory
