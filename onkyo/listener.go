@@ -60,6 +60,7 @@ func iscpListener(a *tfaccessory.TFAccessory) {
 			log.Info.Printf("Update info: %s\n", resp.Parsed)
 		case "NST":
 			nps := v.(*eiscp.NetworkPlayStatus)
+			log.Info.Printf("setting CurrentMediaState to %s", nps.State)
 			switch nps.State {
 			case "Play":
 				if o.Television.CurrentMediaState.GetValue() != characteristic.CurrentMediaStatePlay {

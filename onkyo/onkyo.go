@@ -158,7 +158,7 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	})
 
 	a.Runner = runner
-	addController(a)
+	// addController(a)
 }
 
 // GetAccessory looks up an onkyo device

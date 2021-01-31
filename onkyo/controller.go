@@ -23,7 +23,7 @@ func addController(parent *tfaccessory.TFAccessory) {
 	a.Info.SerialNumber = fmt.Sprintf("%s-controller", parent.Info.SerialNumber)
 	a.Info.FirmwareRevision = parent.Info.FirmwareRevision
 	a.Info.Name = a.Name
-	a.Info.ID = 86403
+	a.Info.ID = 86404
 
 	// add to HC for GUI
 	log.Info.Printf("adding [%s]", a.Info.Name)

@@ -11,6 +11,7 @@ import (
 	"github.com/cloudkucooland/toofar/platform"
 
 	"fmt"
+	"math"
 	"strconv"
 	"sync"
 	"time"
@@ -19,8 +20,7 @@ import (
 	"github.com/eriklupander/dtls"
 	"github.com/eriklupander/tradfri-go/model"
 	"github.com/sirupsen/logrus"
-
-	"github.com/ghetzel/go-stockutil/colorutil"
+	// "github.com/ghetzel/go-stockutil/colorutil"
 )
 
 // Platform is the handle to the bridge
@@ -184,10 +184,14 @@ func lightbulbTemp(newDevice *tfaccessory.TFAccessory, d model.Device) {
 		// this is right at the extremes and wrong in the middle, which is fine with me
 		kelvin := int(mapRange(float64(newval), float64(140), float64(500), float64(7142), float64(2000)))
 		log.Info.Printf("Tradfri-Device Temp Lightbulb handler setting [%s] temperature: %d (%d K) ", newDevice.Name, newval, kelvin)
-		color := colorutil.KelvinToColor(kelvin)
-		h, s, v := color.HSV() // 360, 1, 1 -- max values
+		/* color := colorutil.KelvinToColor(kelvin)
+		 h, s, v := color.HSV() // 360, 1, 1 -- max values
 		ds := s * 100          // normalize 1-100
 		dv := v * 100          // normalize 1-100
+		*/
+
+		r, g, b := kelvinToRGB(kelvin)
+		h, ds, dv := rgbToHsl(int(r), int(g), int(b))
 		_, err := tradfriClient.PutDeviceColorHSL(newDevice.Name, h, ds, dv)
 		if err != nil {
 			log.Info.Println(err.Error())
@@ -383,5 +387,39 @@ func tradfriUpdateAll() {
 				// if you change the color in Ikea's app, ... well ... I can't convert from HSL to Kelvin yet
 			}
 		}
+	}
+}
+
+func kelvinToRGB(k int) (r, g, b float64) {
+	if k < 1000 {
+		k = 1000
+	} else if k > 40000 {
+		k = 40000
+	}
+	t := float64(k / 100)
+	if t <= 66 {
+		r = 1
+		g = bound((99.4708025861*math.Log(t) - 161.1195681661) / 255)
+	} else {
+		r = bound((329.698727446 * math.Pow(t-60, -0.1332047592)) / 255)
+		g = bound((288.1221695283 * math.Pow(t-60, -0.0755148492)) / 255)
+	}
+	if t >= 66 {
+		b = 1
+	} else if t <= 19 {
+		b = 0
+	} else {
+		b = bound((138.5177312231*math.Log(t-10) - 305.0447927307) / 255)
+	}
+	return
+}
+
+func bound(f float64) float64 {
+	if f <= 0 {
+		return 0
+	} else if f >= 1 {
+		return 1
+	} else {
+		return f
 	}
 }

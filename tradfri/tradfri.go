@@ -5,6 +5,7 @@ import (
 
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/dustin/go-coap"
@@ -304,7 +305,6 @@ func mapRange(x, inMin, inMax, outMin, outMax float64) float64 {
 	return (x-inMin)*(outMax-outMin)/(inMax-inMin) + outMin
 }
 
-/*
 func rgbToHsl(rInt int, gInt int, bInt int) (float64, float64, float64) {
 	var r float64 = float64(rInt) / 255
 	var g float64 = float64(gInt) / 255
@@ -351,6 +351,7 @@ func rgbToHsl(rInt int, gInt int, bInt int) (float64, float64, float64) {
 	return h, s, l
 }
 
+/*
 func hexStringToRgb(hexString string) (int, int, int, error) {
 	bytes, err := hex.DecodeString(hexString)
 	if err != nil {

@@ -52,7 +52,7 @@ func StartHC() {
 		SerialNumber:     serial,
 		Manufacturer:     "deviousness",
 		Model:            "TooFar",
-		FirmwareRevision: "0.0.9",
+		FirmwareRevision: "0.0.10",
 	})
 	root.Accessory.OnIdentify(func() {
 		log.Info.Printf("bridge root identify called: %+v", root.Accessory)

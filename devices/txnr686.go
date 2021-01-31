@@ -44,6 +44,9 @@ func NewTXNR686(info accessory.Info) *TXNR686 {
 
 	acc.Volume = characteristic.NewVolume()
 	acc.Volume.Description = "Master Volume"
+	acc.Volume.OnValueRemoteUpdate(func(newstate int) {
+		log.Info.Printf("TXNR686: HC requested speaker volume: %d", newstate)
+	})
 	acc.Speaker.AddCharacteristic(acc.Volume.Characteristic)
 
 	acc.VolumeControlType = characteristic.NewVolumeControlType()
@@ -59,9 +62,16 @@ func NewTXNR686(info accessory.Info) *TXNR686 {
 	acc.VolumeActive = characteristic.NewActive()
 	acc.VolumeActive.Description = "Speaker Active"
 	acc.VolumeActive.SetValue(characteristic.ActiveActive)
+	acc.Volume.OnValueRemoteUpdate(func(newstate int) {
+		log.Info.Printf("TXNR686: HC requested speaker active: %d", newstate)
+	})
 	acc.Speaker.AddCharacteristic(acc.VolumeActive.Characteristic)
 
 	acc.Speaker.Mute.SetValue(false)
+	acc.Speaker.Mute.OnValueRemoteUpdate(func(newstate bool) {
+		log.Info.Printf("TXNR686: HC requested speaker mute: %t", newstate)
+	})
+	acc.Speaker.AddCharacteristic(acc.VolumeActive.Characteristic)
 	acc.Speaker.Primary = false
 	acc.AddService(acc.Speaker.Service)
 	// this should be required but breaks things
@@ -168,10 +178,6 @@ func (t *TXNR686) AddInputs(nfi *eiscp.NRI) {
 		t.AddService(is.Service)
 		t.Television.AddLinkedService(is.Service)
 
-		// never triggered?
-		is.CurrentVisibilityState.OnValueRemoteUpdate(func(newstate int) {
-			log.Info.Printf("%s CurrentVisibilityState: %d", is.Name.GetValue(), newstate)
-		})
 		is.TargetVisibilityState.OnValueRemoteUpdate(func(newstate int) {
 			log.Info.Printf("%s TargetVisibilityState: %d", is.Name.GetValue(), newstate)
 			// is.TargetVisibilityState.SetValue(newstate)  // not saved, but fine for now
@@ -219,7 +225,7 @@ func NewTXNR686Svc() *TXNR686Svc {
 	svc.Volume = characteristic.NewVolume()
 	svc.AddCharacteristic(svc.Volume.Characteristic)
 	svc.Volume.OnValueRemoteUpdate(func(newstate int) {
-		log.Info.Printf("TXNR686: HC requested Volume: %d", newstate)
+		log.Info.Printf("TXNR686: HC requested television volume: %d", newstate)
 	})
 
 	svc.StreamingStatus = characteristic.NewStreamingStatus()
@@ -268,6 +274,7 @@ func NewTXNR686Svc() *TXNR686Svc {
 	})
 
 	svc.CurrentMediaState = characteristic.NewCurrentMediaState()
+	// svc.CurrentMediaState.SetValue(characteristic.CurrentMediaStatePlay)
 	svc.AddCharacteristic(svc.CurrentMediaState.Characteristic)
 
 	svc.TargetMediaState = characteristic.NewTargetMediaState()
