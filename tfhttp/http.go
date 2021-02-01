@@ -6,6 +6,7 @@ import (
 	"github.com/brutella/hc/log"
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
 	"github.com/cloudkucooland/toofar/config"
+	"github.com/cloudkucooland/toofar/konnected"
 	"github.com/cloudkucooland/toofar/platform"
 	"github.com/cloudkucooland/toofar/shelly"
 	"github.com/gorilla/mux"
@@ -28,6 +29,7 @@ func (h Platform) Startup(c *config.Config) platform.Control {
 	r := mux.NewRouter()
 	r.HandleFunc("/", homeHandler)
 	r.HandleFunc("/shelly/{cmd}", shelly.Handler)
+	r.HandleFunc("/konnected/device/{device}", konnected.Handler)
 
 	// register some middleware to ensure that only local IP addresses can connect
 
