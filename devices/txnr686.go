@@ -24,8 +24,8 @@ type TXNR686 struct {
 	Volume       *characteristic.Volume
 
 	// these break things if added
-	VolumeControlType *characteristic.VolumeControlType
-	VolumeSelector    *characteristic.VolumeSelector // bad things happen
+	// VolumeControlType *characteristic.VolumeControlType
+	// VolumeSelector    *characteristic.VolumeSelector // bad things happen
 
 	Sources map[int]string
 }
@@ -44,18 +44,18 @@ func NewTXNR686(info accessory.Info) *TXNR686 {
 
 	acc.Volume = characteristic.NewVolume()
 	acc.Volume.Description = "Master Volume"
-	acc.Volume.OnValueRemoteUpdate(func(newstate int) {
+	/* acc.Volume.OnValueRemoteUpdate(func(newstate int) {
 		log.Info.Printf("TXNR686: HC requested speaker volume: %d", newstate)
-	})
+	}) */
 	acc.Speaker.AddCharacteristic(acc.Volume.Characteristic)
 
-	acc.VolumeControlType = characteristic.NewVolumeControlType()
-	acc.VolumeControlType.Description = "VolumeControlType"
-	acc.VolumeControlType.SetValue(characteristic.VolumeControlTypeAbsolute)
+	// acc.VolumeControlType = characteristic.NewVolumeControlType()
+	// acc.VolumeControlType.Description = "VolumeControlType"
+	// acc.VolumeControlType.SetValue(characteristic.VolumeControlTypeAbsolute)
 	// this breaks things
 	// acc.Speaker.AddCharacteristic(acc.VolumeControlType.Characteristic)
-	acc.VolumeSelector = characteristic.NewVolumeSelector()
-	acc.VolumeSelector.Description = "VolumeSelector"
+	// acc.VolumeSelector = characteristic.NewVolumeSelector()
+	// acc.VolumeSelector.Description = "VolumeSelector"
 	// this break things
 	// acc.Speaker.AddCharacteristic(acc.VolumeSelector.Characteristic)
 
@@ -65,7 +65,7 @@ func NewTXNR686(info accessory.Info) *TXNR686 {
 	acc.Volume.OnValueRemoteUpdate(func(newstate int) {
 		log.Info.Printf("TXNR686: HC requested speaker active: %d", newstate)
 	})
-	acc.Speaker.AddCharacteristic(acc.VolumeActive.Characteristic)
+	// acc.Speaker.AddCharacteristic(acc.VolumeActive.Characteristic)
 
 	acc.Speaker.Mute.SetValue(false)
 	acc.Speaker.Mute.OnValueRemoteUpdate(func(newstate bool) {
@@ -80,8 +80,8 @@ func NewTXNR686(info accessory.Info) *TXNR686 {
 
 	acc.Temp.Service.Primary = false
 	acc.AddService(acc.Temp.Service)
-	acc.Television.AddLinkedService(acc.Temp.Service) // does this do anything? it doesn't seem to hurt...
-	acc.Speaker.AddLinkedService(acc.Temp.Service)    // does this do anything? it doesn't seem to hurt...
+	// acc.Television.AddLinkedService(acc.Temp.Service) // does this do anything? it doesn't seem to hurt...
+	// acc.Speaker.AddLinkedService(acc.Temp.Service)    // does this do anything? it doesn't seem to hurt...
 
 	acc.Sources = make(map[int]string)
 

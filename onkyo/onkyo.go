@@ -123,9 +123,9 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		}
 	})
 
-	d.VolumeSelector.OnValueRemoteUpdate(func(newstate int) {
+	/* d.VolumeSelector.OnValueRemoteUpdate(func(newstate int) {
 		log.Info.Printf("set volumeselector: %d", newstate)
-	})
+	}) */
 
 	if _, err := d.Amp.GetTempData(); err != nil {
 		log.Info.Println(err.Error())
