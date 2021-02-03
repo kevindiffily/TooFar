@@ -9,15 +9,19 @@ import (
 	"github.com/cloudkucooland/toofar/devices"
 	"github.com/cloudkucooland/toofar/platform"
 
+	"bufio"
 	"fmt"
 	"github.com/brutella/hc/accessory"
 	"github.com/brutella/hc/characteristic"
 	"github.com/brutella/hc/log"
 	"github.com/brutella/hc/service"
 	"github.com/brutella/hc/util"
+	"os"
 	"strconv"
 	"time"
 )
+
+const FIFO = "/tmp/tempfifo"
 
 var sensors *tfaccessory.TFAccessory
 
@@ -82,6 +86,7 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	ls := a.Device.(*devices.LinuxSensors)
 
 	noprimary := true
+
 	for chip := range nfs.Chips {
 		scv := make(devices.SensorChipValues)
 		ls.Chips[chip] = &scv
@@ -107,7 +112,47 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		}
 	}
 
+	info, err := os.Stat(FIFO)
+	if !os.IsNotExist(err) && info.Mode()&os.ModeNamedPipe != 0 {
+		log.Info.Printf("found %s for temp data", FIFO)
+
+		scv := make(devices.SensorChipValues)
+		ls.Chips["FIFO"] = &scv
+		scv["FIFO"] = service.NewTemperatureSensor()
+		name := characteristic.NewName()
+		scv["FIFO"].AddCharacteristic(name.Characteristic)
+		name.SetValue("Ambient")
+		ls.AddService(scv["FIFO"].Service)
+
+		// process the FIFO as it is updated
+		go readFIFO(scv["FIFO"])
+	}
+
 	sensors = a
+}
+
+func readFIFO(s *service.TemperatureSensor) {
+	fifo, err := os.Open(FIFO)
+	if err != nil {
+		log.Info.Printf(err.Error())
+		return
+	}
+
+	reader := bufio.NewReader(fifo)
+	for {
+		line, err := reader.ReadBytes('\n')
+		if err != nil {
+			log.Info.Println(err)
+			continue
+		}
+		temp, err := strconv.ParseFloat(string(line)[0:5], 64)
+		if err != nil {
+			log.Info.Println(err)
+			continue
+		}
+		s.CurrentTemperature.SetValue(temp)
+		// time.Sleep(30 * time.Second)
+	}
 }
 
 func actionRunner(a *tfaccessory.TFAccessory, d *action.Action) {
