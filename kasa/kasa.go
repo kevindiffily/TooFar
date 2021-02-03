@@ -369,7 +369,7 @@ func sendUDP(ip string, cmd string) error {
 	}
 
 	payload := encrypt(cmd)
-	for i := 0; i < repeats; i++ {
+	for i := uint8(0); i < repeats; i++ {
 		_, err := kasaUDPconn.WriteToUDP(payload, &net.UDPAddr{IP: net.ParseIP(ip), Port: 9999})
 		if err != nil {
 			log.Info.Printf("cannot send UDP command: %s", err.Error())

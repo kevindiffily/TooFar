@@ -6,6 +6,7 @@ import (
 	"github.com/cloudkucooland/toofar/config"
 	"github.com/cloudkucooland/toofar/homecontrol"
 	"github.com/cloudkucooland/toofar/kasa"
+	"github.com/cloudkucooland/toofar/konnected"
 	"github.com/cloudkucooland/toofar/linuxsensors"
 	"github.com/cloudkucooland/toofar/onkyo"
 	"github.com/cloudkucooland/toofar/owm"
@@ -48,12 +49,15 @@ func BootstrapPlatforms(c *config.Config) {
 	var ls linuxsensors.Platform
 	platform.RegisterPlatform("LinuxSensors", ls)
 
+	var k konnected.Platform
+	platform.RegisterPlatform("Konnected", k)
+
 	var hcp tfhc.HCPlatform
 	platform.RegisterPlatform("HomeControl", hcp)
 
 	platform.StartupAllPlatforms(c)
 
-	// add a sensor
+	// add OS sensors
 	sensor := accessory.TFAccessory{}
 	ls.AddAccessory(&sensor)
 
