@@ -24,7 +24,6 @@ func NewLinuxSensors(info accessory.Info) *LinuxSensors {
 	acc.BridgingState = service.NewBridgingState()
 	acc.Accessory.AddService(acc.BridgingState.Service)
 	acc.BridgingState.Reachable.SetValue(true)
-	// acc.BridgingState.AccessoryIdentifier.SetValue(acc.Name)
 
 	return &acc
 }
