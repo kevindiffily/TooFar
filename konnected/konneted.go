@@ -24,18 +24,20 @@ import (
 type settings struct {
 	Mac          string
 	Name         string
+	IsOn         int // this is not correct, I assume it will be one of the sensors
 	Device       *devices.Konnected
 	Firmware     string
-	EndpointType string     `json:"endpoint_type"`
-	Endpoint     string     `json:"endpoint"`
-	Token        string     `json:"token"`
-	Sensors      []sensor   `json:"sensors"`
-	Actuators    []actuator `json:"actuators"`
-	DHTs         []dht      `json:"dht_sensors"`
+	EndpointType string     `json:"endpoint_type",omitempty`
+	Endpoint     string     `json:"endpoint",omitempty`
+	Token        string     `json:"token",omitempty`
+	Sensors      []sensor   `json:"sensors",omitempty`
+	Actuators    []actuator `json:"actuators",omitempty`
+	DHTs         []dht      `json:"dht_sensors",omitempty`
 }
 
 type sensor struct {
-	Pin uint8 `json:"pin"`
+	Pin    uint8 `json:"pin"`
+	Invert bool
 }
 
 type actuator struct {
@@ -51,9 +53,9 @@ type dht struct {
 type command struct {
 	Pin       uint8  `json:"pin"`
 	State     uint8  `json:"state"`
-	Momentary uint16 `json:"state"`
-	Times     uint8  `json:"times"`
-	Pause     uint8  `json:"pause"`
+	Momentary uint16 `json:"state",omitempty`
+	Times     uint8  `json:"times",omitempty`
+	Pause     uint8  `json:"pause",omitempty`
 }
 
 // Handler is registered with the HTTP platform
@@ -131,13 +133,13 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		return
 	}
 	a.Info.Name = settings.Name
-	a.Info.SerialNumber = settings.Device.Mac
+	a.Info.SerialNumber = a.Username
 	a.Info.Manufacturer = "Konnected.io"
-	// a.Info.Model = settings.Device.Type
+	a.Info.Model = "something"
 	a.Info.FirmwareRevision = settings.Firmware
 
 	// convert the Mac address into a uint64 for the ID
-	mac, err := hex.DecodeString(settings.Device.Mac)
+	mac, err := hex.DecodeString(a.Username)
 	if err != nil {
 		log.Info.Printf("weird shelly MAC: %s", err.Error())
 	}
@@ -181,7 +183,7 @@ func doRequest(a *tfaccessory.TFAccessory, method, url string) (*[]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	req.SetBasicAuth(a.Username, a.Password)
+	// req.SetBasicAuth(a.Username, a.Password)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -201,9 +203,16 @@ func (s Platform) GetAccessory(ip string) (*tfaccessory.TFAccessory, bool) {
 	return val, ok
 }
 
-// XXX this is wrong
+/* mappings {
+  path("/device/:mac/:id/:deviceState") { action: [ PUT: "childDeviceStateUpdate"] }
+  path("/device/:mac") { action: [ PUT: "childDeviceStateUpdate", GET: "getDeviceState" ] }
+  path("/ping") { action: [ GET: "devicePing"] }
+}
+
+https://github.com/konnected-io/homebridge-konnected/blob/master/src/platform.ts
+*/
 func getSettings(a *tfaccessory.TFAccessory) (*settings, error) {
-	url := fmt.Sprintf("http://%s/settings", a.IP)
+	url := fmt.Sprintf("http://%s/device/%s", a.IP, a.Username)
 	body, err := doRequest(a, "GET", url)
 	if err != nil {
 		return nil, err
@@ -216,28 +225,28 @@ func getSettings(a *tfaccessory.TFAccessory) (*settings, error) {
 }
 
 // Background starts up the go process to periodically verify the shelly's state
-func (s Platform) Background() {
-	/* spr := config.Get().ShellyPullRate
-	if spr == 0 {
-		log.Info.Println("pull rate set to 0, disabling shelly puller")
+func (k Platform) Background() {
+	kpr := config.Get().KonnectedPullRate
+	if kpr == 0 {
+		log.Info.Println("pull rate set to 0, disabling konnected puller")
 	}
 	go func() {
-		for range time.Tick(time.Second * time.Duration(spr)) {
-			s.backgroundPuller()
+		for range time.Tick(time.Second * time.Duration(kpr)) {
+			k.backgroundPuller()
 		}
-	}() */
+	}()
 }
 
-/*
-func (s Platform) backgroundPuller() {
-	for _, a := range shellies {
-		r, err := getState(a)
+func (k Platform) backgroundPuller() {
+	for _, a := range konnecteds {
+		settings, err := getSettings(a)
 		if err != nil {
 			log.Info.Println(err.Error())
 			continue
 		}
-		if a.Device.(*accessory.Switch).Switch.On.GetValue() != r.IsOn {
-			updateHCGUI(a, r.IsOn)
+		log.Info.Printf("%+v", settings)
+		if a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.GetValue() != settings.IsOn {
+			a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.SetValue(settings.IsOn)
 		}
 	}
-} */
+}
