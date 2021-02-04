@@ -56,6 +56,10 @@ func iscpListener(a *tfaccessory.TFAccessory) {
 			// ignore
 		case "NJA":
 			// ignore
+		case "NLS":
+			// log.Info.Printf("%+v", eiscp.Menu)
+		case "NLT":
+			log.Info.Printf("%+v", eiscp.Menu)
 		case "UPD":
 			log.Info.Printf("Update info: %s\n", resp.Parsed)
 		case "NST":

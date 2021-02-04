@@ -22,7 +22,12 @@ import (
 // https://medium.com/@hu3vjeen/reverse-engineering-tp-link-kc100-bac4641bf1cd
 // https://machinekoder.com/controlling-tp-link-hs100110-smart-plugs-with-machinekit/
 // https://lib.dr.iastate.edu/cgi/viewcontent.cgi?article=1424&context=creativecomponents
-// https://github.com/p-doyle/Python-KasaSmartPowerStrip
+// ahttps://github.com/p-doyle/Python-KasaSmartPowerStrip
+
+// see if we can support these...
+// https://github.com/brutella/hc/blob/master/characteristic/program_mode.go
+// https://github.com/brutella/hc/blob/master/characteristic/set_duration.go
+// https://github.com/brutella/hc/blob/master/characteristic/remaining_duration.go
 
 const (
 	cmd_sysinfo     = `{"system":{"get_sysinfo":{}}}`
