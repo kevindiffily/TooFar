@@ -107,11 +107,6 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 					}
 				})
 			}
-		case "onkyo-controller":
-			log.Info.Println("adding onkyo-controller")
-			oc := devices.NewOnkyoController(a.Info)
-			a.Device = oc
-			a.Accessory = oc.Accessory
 		default:
 			d := accessory.NewSwitch(a.Info)
 			a.Device = d
@@ -126,6 +121,16 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 					runner.RunActions(actions)
 				}
 			})
+		}
+	case accessory.TypeAudioReceiver:
+		switch a.Info.Model {
+		case "onkyo-controller":
+			log.Info.Println("adding onkyo-controller")
+			oc := devices.NewOnkyoController(a.Info)
+			a.Device = oc
+			a.Accessory = oc.Accessory
+		default:
+			// nothing yet
 		}
 	case accessory.TypeLightbulb:
 		switch a.Info.Model {
@@ -163,8 +168,14 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 			a.Device = accessory.NewTemperatureSensor(a.Info, 20, -10, 55, 0.1)
 			a.Accessory = a.Device.(*accessory.Thermometer).Accessory
 		}
-	/* case accessory.TypeSecuritySystem:
-	a.Accessory = accessory.New(a.Info, a.Type) */
+	case accessory.TypeSecuritySystem:
+		switch a.Info.Model {
+		case "Konnected":
+			log.Info.Println("adding konnected")
+			// a.Accessory = accessory.New(a.Info, a.Type)
+		default:
+			// nothing
+		}
 	case accessory.TypeTelevision:
 		switch a.Info.Model {
 		case "TX-NR686":

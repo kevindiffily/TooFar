@@ -36,9 +36,9 @@ func iscpListener(a *tfaccessory.TFAccessory) {
 				o.Speaker.Mute.SetValue(v.(bool))
 			}
 		case "TPD":
-			if float64(v.(int8)) != o.Temp.CurrentTemperature.GetValue() {
-				log.Info.Printf("temp: %dC\n", v.(int8))
-				o.Temp.CurrentTemperature.SetValue(float64(v.(int8)))
+			if float64(v.(uint8)) != o.Temp.CurrentTemperature.GetValue() {
+				// log.Info.Printf("temp: %dC\n", v.(uint8))
+				o.Temp.CurrentTemperature.SetValue(float64(v.(uint8)))
 			}
 		case "SLI":
 			// resp.Response is ID, resp.Parsed is name
