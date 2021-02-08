@@ -107,6 +107,20 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 					}
 				})
 			}
+		case "HS200", "HS210":
+			d := devices.NewHS200(a.Info)
+			a.Device = d
+			a.Accessory = d.Accessory
+			a.Runner = genericSwitchActionRunner
+			d.Switch.On.OnValueRemoteUpdate(func(newval bool) {
+				if newval {
+					actions := a.MatchActions("On")
+					runner.RunActions(actions)
+				} else {
+					actions := a.MatchActions("Off")
+					runner.RunActions(actions)
+				}
+			})
 		default:
 			d := accessory.NewSwitch(a.Info)
 			a.Device = d

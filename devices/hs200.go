@@ -6,40 +6,37 @@ import (
 	"github.com/brutella/hc/service"
 )
 
-type HS220 struct {
+// Both 200 and 210
+type HS200 struct {
 	*accessory.Accessory
-	Lightbulb *HS220Svc
+	Switch *HS200Svc
 }
 
-func NewHS220(info accessory.Info) *HS220 {
-	acc := HS220{}
-	acc.Accessory = accessory.New(info, accessory.TypeLightbulb)
+func NewHS200(info accessory.Info) *HS200 {
+	acc := HS200{}
+	acc.Accessory = accessory.New(info, accessory.TypeSwitch)
 
-	acc.Lightbulb = NewHS220Svc()
-	acc.AddService(acc.Lightbulb.Service)
+	acc.Switch = NewHS200Svc()
+	acc.AddService(acc.Switch.Service)
 	return &acc
 }
 
-type HS220Svc struct {
+type HS200Svc struct {
 	*service.Service
 
-	On         *characteristic.On
-	Brightness *characteristic.Brightness
+	On *characteristic.On
 
 	ProgramMode       *characteristic.ProgramMode
 	SetDuration       *characteristic.SetDuration
 	RemainingDuration *characteristic.RemainingDuration
 }
 
-func NewHS220Svc() *HS220Svc {
-	svc := HS220Svc{}
-	svc.Service = service.New(service.TypeLightbulb)
+func NewHS200Svc() *HS200Svc {
+	svc := HS200Svc{}
+	svc.Service = service.New(service.TypeSwitch)
 
 	svc.On = characteristic.NewOn()
 	svc.AddCharacteristic(svc.On.Characteristic)
-
-	svc.Brightness = characteristic.NewBrightness()
-	svc.AddCharacteristic(svc.Brightness.Characteristic)
 
 	svc.ProgramMode = characteristic.NewProgramMode()
 	svc.AddCharacteristic(svc.ProgramMode.Characteristic)
