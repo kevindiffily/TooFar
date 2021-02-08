@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func getSettingsTCP(a *tfaccessory.TFAccessory) (*kasaSysinfo, error) {
+func getSettingsTCP(a *tfaccessory.TFAccessory) (*ksysinfo, error) {
 	// log.Info.Printf("full kasa pull for [%s]", a.Name)
 	res, err := sendTCP(a.IP, cmd_sysinfo)
 	if err != nil {

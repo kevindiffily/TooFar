@@ -107,7 +107,7 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 					}
 				})
 			}
-		case "HS200", "HS210":
+		case "HS200(US)", "HS210(US)":
 			d := devices.NewHS200(a.Info)
 			a.Device = d
 			a.Accessory = d.Accessory
@@ -121,7 +121,36 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 					runner.RunActions(actions)
 				}
 			})
+		case "HS103(US)":
+			d := devices.NewHS103(a.Info)
+			a.Device = d
+			a.Accessory = d.Accessory
+			a.Runner = genericSwitchActionRunner
+			d.Outlet.On.OnValueRemoteUpdate(func(newval bool) {
+				if newval {
+					actions := a.MatchActions("On")
+					runner.RunActions(actions)
+				} else {
+					actions := a.MatchActions("Off")
+					runner.RunActions(actions)
+				}
+			})
+		case "KP115(US)":
+			d := devices.NewKP115(a.Info)
+			a.Device = d
+			a.Accessory = d.Accessory
+			a.Runner = genericSwitchActionRunner
+			d.Outlet.On.OnValueRemoteUpdate(func(newval bool) {
+				if newval {
+					actions := a.MatchActions("On")
+					runner.RunActions(actions)
+				} else {
+					actions := a.MatchActions("Off")
+					runner.RunActions(actions)
+				}
+			})
 		default:
+			log.Info.Println("adding generic switch")
 			d := accessory.NewSwitch(a.Info)
 			a.Device = d
 			a.Accessory = d.Accessory

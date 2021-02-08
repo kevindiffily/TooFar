@@ -31,6 +31,7 @@ import (
 
 const (
 	cmd_sysinfo     = `{"system":{"get_sysinfo":{}}}`
+	cmd_countdown   = `{"count_down":{"get_rules":{}}}`
 	broadcast_sends = 1
 )
 
@@ -126,6 +127,8 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	switch settings.Model {
 	case "HS103(US)":
 		a.Type = accessory.TypeSwitch
+	case "KP115(US)":
+		a.Type = accessory.TypeSwitch
 	case "HS200(US)":
 		a.Type = accessory.TypeSwitch
 	case "HS210(US)":
@@ -163,12 +166,51 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 
 		// install callbacks: if we get an update from HC, deal with it
 		sw.Switch.On.OnValueRemoteUpdate(func(newstate bool) {
-			log.Info.Printf("setting [%s] to [%t] from Kasa switch handler", a.Name, newstate)
+			log.Info.Printf("setting [%s] to [%t] from Kasa generic switch handler", a.Name, newstate)
 			err := setRelayState(a, newstate)
 			if err != nil {
 				log.Info.Println(err.Error())
 				return
 			}
+		})
+	case *devices.HS200: // and 210
+		sw := a.Device.(*devices.HS200)
+		sw.Switch.On.SetValue(settings.RelayState > 0)
+		sw.Switch.On.OnValueRemoteUpdate(func(newstate bool) {
+			log.Info.Printf("setting [%s] to [%t] from HS200 handler", a.Name, newstate)
+			err := setRelayState(a, newstate)
+			if err != nil {
+				log.Info.Println(err.Error())
+				return
+			}
+		})
+	case *devices.KP115:
+		kp := a.Device.(*devices.KP115)
+		kp.Outlet.On.SetValue(settings.RelayState > 0)
+		kp.Outlet.OutletInUse.SetValue(settings.RelayState > 0)
+
+		kp.Outlet.On.OnValueRemoteUpdate(func(newstate bool) {
+			log.Info.Printf("setting [%s] to [%t] from KP115 handler", a.Name, newstate)
+			err := setRelayState(a, newstate)
+			if err != nil {
+				log.Info.Println(err.Error())
+				return
+			}
+			kp.Outlet.OutletInUse.SetValue(newstate)
+		})
+	case *devices.HS103:
+		hs := a.Device.(*devices.HS103)
+		hs.Outlet.On.SetValue(settings.RelayState > 0)
+		hs.Outlet.OutletInUse.SetValue(settings.RelayState > 0)
+
+		hs.Outlet.On.OnValueRemoteUpdate(func(newstate bool) {
+			log.Info.Printf("setting [%s] to [%t] from HS103 handler", a.Name, newstate)
+			err := setRelayState(a, newstate)
+			if err != nil {
+				log.Info.Println(err.Error())
+				return
+			}
+			hs.Outlet.OutletInUse.SetValue(newstate)
 		})
 	case *devices.HS220:
 		hs := a.Device.(*devices.HS220)
@@ -189,6 +231,20 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 				log.Info.Println(err.Error())
 				return
 			}
+		})
+		hs.Lightbulb.SetDuration.OnValueRemoteUpdate(func(newval int) {
+			if hs.Lightbulb.ProgramMode.GetValue() != characteristic.ProgramModeNoProgramScheduled {
+				log.Info.Println("a countdown is already active, ignoring request")
+				return
+			}
+			log.Info.Println("setting up countdown action")
+			current := hs.Lightbulb.On.GetValue()
+			err := setProgramState(a, !current, newval)
+			if err != nil {
+				log.Info.Println(err.Error())
+				return
+			}
+			hs.Lightbulb.ProgramMode.SetValue(characteristic.ProgramModeProgramScheduled)
 		})
 	case *devices.KP303:
 		kp := a.Device.(*devices.KP303)
@@ -250,6 +306,35 @@ func setChildRelayState(a *tfaccessory.TFAccessory, childID string, newstate boo
 	return nil
 }
 
+func setProgramState(a *tfaccessory.TFAccessory, target bool, t int) error {
+	err := sendUDP(a.IP, `{"count_down":{"get_rules":{}}}`)
+	if err != nil {
+		log.Info.Println(err.Error())
+		return err
+	}
+
+	var state uint8
+	if target {
+		state = 1
+	}
+	cmd := fmt.Sprintf(`{"count_down":{"add_rule":{"enable":1,"delay":%d,"act":%d,"name":"TooFar"}}}`, t, state)
+	err = sendUDP(a.IP, cmd)
+	if err != nil {
+		log.Info.Println(err.Error())
+		return err
+	}
+	return nil
+}
+
+func deleteCountdown(a *tfaccessory.TFAccessory) error {
+	err := sendUDP(a.IP, `{"count_down":{"delete_all_rules":{}}}`)
+	if err != nil {
+		log.Info.Println(err.Error())
+		return err
+	}
+	return nil
+}
+
 func setRelayAlias(a *tfaccessory.TFAccessory, newname string) error {
 	cmd := fmt.Sprintf(`{"system":{"set_alias":{"alias":"%s"}}}`, newname)
 	err := sendUDP(a.IP, cmd)
@@ -296,6 +381,10 @@ func getSettingBroadcast() error {
 	return broadcastCmd(cmd_sysinfo)
 }
 
+func getCountdownBroadcast() error {
+	return broadcastCmd(cmd_countdown)
+}
+
 func broadcastCmd(cmd string) error {
 	bcast, err := broadcastAddresses()
 	if err != nil {
@@ -325,6 +414,7 @@ func (k Platform) Background() {
 	go func() {
 		for range time.Tick(time.Second * time.Duration(kpr)) {
 			getSettingBroadcast()
+			getCountdownBroadcast()
 		}
 	}()
 }
