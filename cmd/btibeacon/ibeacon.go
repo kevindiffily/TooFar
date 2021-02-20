@@ -4,9 +4,9 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"strings"
-    "fmt"
+	"fmt"
 	"github.com/brutella/hc/log"
+	"strings"
 
 	"github.com/paypal/gatt"
 	"github.com/paypal/gatt/examples/option"
@@ -60,4 +60,3 @@ func main() {
 	device.Init(onStateChanged)
 	select {}
 }
-

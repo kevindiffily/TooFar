@@ -165,16 +165,16 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 				}
 			})
 		}
-	case accessory.TypeAudioReceiver:
-		switch a.Info.Model {
-		case "onkyo-controller":
-			log.Info.Println("adding onkyo-controller")
-			oc := devices.NewOnkyoController(a.Info)
-			a.Device = oc
-			a.Accessory = oc.Accessory
-		default:
-			// nothing yet
-		}
+	/* case accessory.TypeAudioReceiver:
+	switch a.Info.Model {
+	case "onkyo-controller":
+		log.Info.Println("adding onkyo-controller")
+		oc := devices.NewOnkyoController(a.Info)
+		a.Device = oc
+		a.Accessory = oc.Accessory
+	default:
+		// nothing yet
+	} */
 	case accessory.TypeLightbulb:
 		switch a.Info.Model {
 		case "TRADFRI bulb E26 CWS opal 600lm":
@@ -225,6 +225,10 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 			tx := devices.NewTXNR686(a.Info)
 			a.Device = tx
 			a.Accessory = tx.Accessory
+		case "UN40JU6100":
+			s := devices.NewSamsungTV(a.Info)
+			a.Device = s
+			a.Accessory = s.Accessory
 		default:
 			log.Info.Printf("unknown television type, using generic: [%s]", a.Info.Model)
 			tv := accessory.NewTelevision(a.Info)
