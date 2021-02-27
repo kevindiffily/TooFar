@@ -13,25 +13,34 @@ This is not really a general purpose bridge, it is what I need for my setup. I'm
 
 # My goals for TooFar 
 * TooFar will support minimal automation, but ony where the same thing can't be achieved in HomeKit. Automate with homekit where possible, if not possible then write the automation bits in TooFar.
-* Be small, fast, and efficient. Things like HomeBridge.io and openHAB are great, but too much for my needs. I found myself spending so much time bending them to my will that it just became easier to build my own
+* Be small, fast, and efficient. Things like HomeBridge.io and openHAB are great, but too much for my needs. I found myself spending so much time bending them to my will that it just became easier to build my own. I think "small" has gone out the window at this point. But it is still smaller than other HK bridges.
 
 # Constraints (the hardware that must work):
-* TP-Link Kasa switches (I like these. I have a dozen)
-* Shelly relays to make analog switches smart (I have two, they are excellent, but more work than the Kasa)
+* TP-Link Kasa switches and power strips (I like these. I have 30)
+* Shelly relays to make analog switches smart
 * Ikea Tradfri (I have a few bulbs, one hub) these do not need to be bridged ... but ...
 * 3 Philips Hue can lights, connected to Tradfri. which cannot be shown via HK since the vendors differ, need to bridge Tradfri (or I could buy a Hue Hub...)
+* Onkyo Receiver
+* Enphase IQ Envoy solar power management
+* SmartMeterTexas API to get realtime electric use/production
 
 # Features
-* Support for Onkyo/Pioneer/Integra amplifier/av-receivers by pretending to be a TV. They are listed as TX-NR686, but any eiscp Onkyo, Pioneer or Integra AVR should work (including auto-detection of inputs)
+* Support for Onkyo/Pioneer/Integra amplifier/av-receivers by pretending to be a TV. Any eiscp Onkyo, Pioneer, or Integra AVR should work (including auto-detection of inputs)
 * Support for checking if devices are up (http-ping)
 * Support for OpenWeatherMap data -- you can automate other devices based on weather conditions using the "Controller" iOS app.
+* Support for Enphase IQ Envoy -- displays as a lux sensor. If you run more than 10kW it will max out. I can add scaling if needed.
 
 # To Do:
-* Auto-discovery of Kasa switches (99%)
+* konnected.io support. My hardware is backordered....
+* Zone support for EISCP devices
+* Auto-discovery of Kasa switches (99% done, but manual configuration is still better)
 * Auto-discovery of Shelly relays, manual config is easy enough to make this low priority
 * Support Sony Blu-Ray player -- not really a priority since HDMI-CEC gets the job done
-* Support Samsung TV -- not really a priority since HDMI-CEC gets the job done
 * Keep improving my fork of go-eiscp and integration of Onkyo amps with homekit
+* SmartMeterTexas API
+
+# Can't/Won't Do:
+* Support Samsung TV -- there is no real way to read current state, I can send remote control keys, but not power-on. Not worth any more effort.
 
 # What sucks:
 * First setup of Tradfri requires go-tradfri client to get the username/password configured. One-time-problem
