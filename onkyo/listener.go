@@ -13,7 +13,7 @@ import (
 )
 
 func iscpListener(a *tfaccessory.TFAccessory) {
-	o := a.Device.(*devices.TXNR686)
+	o := a.Device.(*devices.OnkyoReceiver)
 	for resp := range o.Amp.Responses {
 		v := resp.Parsed
 		switch resp.Command {

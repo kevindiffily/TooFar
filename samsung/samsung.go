@@ -88,26 +88,16 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		log.Info.Printf(err.Error())
 		return
 	}
+
+	var deets samtv.SmartDeviceDescription
 	dev.RestoreSessionData(sessionKey, 1, a.Username)
 	if err := dev.InitSession(); err != nil {
 		log.Info.Printf(err.Error())
-		return
-	}
-
-	deets, err := dev.DeviceDescription()
-	if err != nil {
-		log.Info.Printf(err.Error())
-		return
-	}
-
-	a.Info.Manufacturer = "Samsung"
-
-	log.Info.Printf("%+v", deets)
-	// if we got nothing, don't panic, just read it from cache -- probably powered off
-	if deets.ModelName == "" {
+		log.Info.Println("looking for cached data")
 		raw, err := storage.Get(a.IP)
 		if err != nil {
 			log.Info.Println(err.Error())
+			return
 		}
 
 		err = json.Unmarshal(raw, &deets)
@@ -116,6 +106,11 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 			return
 		}
 	} else {
+		deets, err = dev.DeviceDescription()
+		if err != nil {
+			log.Info.Println(err.Error())
+			return
+		}
 		// if we got something, write it to the cache
 		raw, err := json.Marshal(deets)
 		if err != nil {
@@ -125,6 +120,9 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 			storage.Set(a.IP, raw)
 		}
 	}
+
+	log.Info.Printf("%+v", deets)
+	a.Info.Manufacturer = "Samsung"
 
 	a.Info.Model = deets.ModelName
 	a.Info.SerialNumber = deets.DeviceID
@@ -153,9 +151,9 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	d.AddInputs(inputNames)
 
 	d.Television.On.OnValueRemoteUpdate(func(newstate bool) {
-		log.Info.Printf("setting power to %t", newstate)
+		log.Info.Printf("setting power to %t (wake-on-lan not implemented)", newstate)
 		if err := d.SamTV.Key("KEY_POWER"); err != nil {
-			d.Television.On.SetValue(false)
+			// d.Television.On.SetValue(false)
 			log.Info.Println(err.Error())
 		}
 	})

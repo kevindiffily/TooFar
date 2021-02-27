@@ -32,7 +32,7 @@ func addController(parent *tfaccessory.TFAccessory) {
 
 	// music optimizer toggle - not correct at bridge start yet
 	oc := a.Device.(*devices.OnkyoController)
-	onkyo := parent.Device.(*devices.TXNR686)
+	onkyo := parent.Device.(*devices.OnkyoReceiver)
 	oc.MusicOptimizer.On.OnValueRemoteUpdate(func(newstate bool) {
 		log.Info.Printf("Setting music optimizer to %t", newstate)
 		mot := "00"

@@ -9,7 +9,7 @@ import (
 )
 
 func handleRemote(a *tfaccessory.TFAccessory, newstate int) {
-	d := a.Device.(*devices.TXNR686).Amp
+	d := a.Device.(*devices.OnkyoReceiver).Amp
 	switch newstate {
 	case characteristic.RemoteKeyRewind:
 		if err := d.SetOnly("NTC", "REW"); err != nil {

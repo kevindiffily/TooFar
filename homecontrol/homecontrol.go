@@ -207,6 +207,9 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 		case "OpenWeatherMap":
 			a.Device = devices.NewOpenWeatherMap(a.Info)
 			a.Accessory = a.Device.(*devices.OpenWeatherMap).Accessory
+		case "IQ Envoy":
+			a.Device = devices.NewEnvoy(a.Info)
+			a.Accessory = a.Device.(*devices.Envoy).Accessory
 		default:
 			a.Device = accessory.NewTemperatureSensor(a.Info, 20, -10, 55, 0.1)
 			a.Accessory = a.Device.(*accessory.Thermometer).Accessory
@@ -220,17 +223,17 @@ func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
 			// nothing
 		}
 	case accessory.TypeTelevision:
-		switch a.Info.Model {
-		case "TX-NR686":
-			tx := devices.NewTXNR686(a.Info)
+		switch a.Info.Manufacturer {
+		case "ONKYO":
+			tx := devices.NewOnkyoReceiver(a.Info)
 			a.Device = tx
 			a.Accessory = tx.Accessory
-		case "UN40JU6100":
+		case "Samsung":
 			s := devices.NewSamsungTV(a.Info)
 			a.Device = s
 			a.Accessory = s.Accessory
 		default:
-			log.Info.Printf("unknown television type, using generic: [%s]", a.Info.Model)
+			log.Info.Printf("unknown television type, using generic: [%s]", a.Info.Manufacturer)
 			tv := accessory.NewTelevision(a.Info)
 			a.Device = tv
 			a.Accessory = tv.Accessory

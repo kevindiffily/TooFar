@@ -15,7 +15,7 @@ import (
 
 func runner(a *tfaccessory.TFAccessory, d *action.Action) {
 	// log.Info.Printf("in onkyo action runner: %+v", d)
-	dev := a.Device.(*devices.TXNR686)
+	dev := a.Device.(*devices.OnkyoReceiver)
 	switch d.Verb {
 	case "Stop":
 		log.Info.Printf("called stop")

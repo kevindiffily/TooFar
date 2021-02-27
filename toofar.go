@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/cloudkucooland/toofar/accessory"
 	"github.com/cloudkucooland/toofar/config"
+	"github.com/cloudkucooland/toofar/envoy"
 	"github.com/cloudkucooland/toofar/homecontrol"
 	"github.com/cloudkucooland/toofar/kasa"
 	"github.com/cloudkucooland/toofar/konnected"
@@ -55,6 +56,9 @@ func BootstrapPlatforms(c *config.Config) {
 
 	var ss samsung.Platform
 	platform.RegisterPlatform("Samsung", ss)
+
+	var en envoy.Platform
+	platform.RegisterPlatform("Envoy", en)
 
 	var hcp tfhc.HCPlatform
 	platform.RegisterPlatform("HomeControl", hcp)

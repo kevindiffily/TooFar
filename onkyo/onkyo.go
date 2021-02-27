@@ -79,7 +79,7 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	h, _ := platform.GetPlatform("HomeControl")
 	h.AddAccessory(a)
 
-	d := a.Device.(*devices.TXNR686)
+	d := a.Device.(*devices.OnkyoReceiver)
 	d.Amp = dev
 
 	d.Television.ConfiguredName.SetValue(a.Info.Name)
@@ -144,7 +144,7 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	} else {
 		i, _ := strconv.ParseInt(string(source), 16, 32)
 		d.Television.ActiveIdentifier.SetValue(int(i))
-		d.Television.ConfiguredName.SetValue(fmt.Sprintf("%s:%s", a.Info.Name, d.Sources[int(i)]))
+		// d.Television.ConfiguredName.SetValue(fmt.Sprintf("%s:%s", a.Info.Name, d.Sources[int(i)]))
 	}
 
 	/// NPS does not respond if powered off or not set to SLI network
@@ -179,7 +179,7 @@ func (o Platform) Background() {
 // we just ask, let the persistentListener process the responses
 func (o Platform) backgroundPuller() {
 	for _, a := range onkyos {
-		d := a.Device.(*devices.TXNR686)
+		d := a.Device.(*devices.OnkyoReceiver)
 		d.Amp.GetTempData()
 		d.Amp.GetVolume()
 		d.Amp.GetMute()
