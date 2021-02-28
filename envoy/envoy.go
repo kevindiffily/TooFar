@@ -2,9 +2,8 @@ package envoy
 
 import (
 	"github.com/brutella/hc/accessory"
-	// "github.com/brutella/hc/characteristic"
+	"github.com/brutella/hc/characteristic"
 	"github.com/brutella/hc/log"
-	// "github.com/brutella/hc/service"
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
 	"github.com/cloudkucooland/toofar/config"
 	"github.com/cloudkucooland/toofar/devices"
@@ -66,16 +65,21 @@ func (p Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	h.AddAccessory(a)
 
 	envoys[a.IP] = a
-
 	a.Device.(*devices.Envoy).Envoy = e
+	log.Info.Printf("Enphase IQ Envoy ID: %s\n", a.Info.SerialNumber)
+
+	// set initial state
 	now, err := e.Now()
 	if err != nil {
 		log.Info.Println(err.Error())
 		now = 0.0
 	}
-	now += 0.0001
-	log.Info.Printf("Envoy Current Production: %f\n", now)
-	a.Device.(*devices.Envoy).LightSensor.CurrentAmbientLightLevel.SetValue(now)
+	if now == 0.0 {
+		a.Device.(*devices.Envoy).Active.SetValue(characteristic.ActiveInactive)
+		a.Device.(*devices.Envoy).LightSensor.CurrentAmbientLightLevel.SetValue(0.0001)
+	} else {
+		a.Device.(*devices.Envoy).LightSensor.CurrentAmbientLightLevel.SetValue(now)
+	}
 }
 
 // GetAccessory looks up a device by IP address
@@ -100,8 +104,17 @@ func (p Platform) backgroundPuller() {
 			log.Info.Println(err.Error())
 			return
 		}
-		now += 0.0001
-		a.Device.(*devices.Envoy).LightSensor.CurrentAmbientLightLevel.SetValue(now)
-		log.Info.Printf("Current Envoy Production: %f\n", now)
+		if now == 0.0 {
+			a.Device.(*devices.Envoy).LightSensor.CurrentAmbientLightLevel.SetValue(0.0001)
+			if a.Device.(*devices.Envoy).Active.GetValue() == characteristic.ActiveActive {
+				a.Device.(*devices.Envoy).Active.SetValue(characteristic.ActiveInactive)
+			}
+		} else {
+			// log.Info.Printf("Envoy Production: %f\n", now)
+			a.Device.(*devices.Envoy).LightSensor.CurrentAmbientLightLevel.SetValue(now)
+			if a.Device.(*devices.Envoy).Active.GetValue() == characteristic.ActiveInactive {
+				a.Device.(*devices.Envoy).Active.SetValue(characteristic.ActiveActive)
+			}
+		}
 	}
 }

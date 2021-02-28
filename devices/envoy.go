@@ -11,6 +11,7 @@ import (
 type Envoy struct {
 	*accessory.Accessory
 	LightSensor *service.LightSensor
+	Active      *characteristic.Active
 	Envoy       *envoy.Envoy
 }
 
@@ -24,9 +25,9 @@ func NewEnvoy(info accessory.Info) *Envoy {
 	name.SetValue("Solar Production")
 	acc.LightSensor.AddCharacteristic(name.Characteristic)
 
-	active := characteristic.NewActive()
-	active.SetValue(characteristic.ActiveActive)
-	acc.LightSensor.AddCharacteristic(active.Characteristic)
+	acc.Active = characteristic.NewActive()
+	acc.Active.SetValue(characteristic.ActiveActive)
+	acc.LightSensor.AddCharacteristic(acc.Active.Characteristic)
 
 	acc.AddService(acc.LightSensor.Service)
 	return &acc
