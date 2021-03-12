@@ -2,18 +2,13 @@ package tfhc
 
 import (
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
-	"github.com/cloudkucooland/toofar/action"
 	"github.com/cloudkucooland/toofar/config"
-	"github.com/cloudkucooland/toofar/devices"
 	"github.com/cloudkucooland/toofar/platform"
-	"github.com/cloudkucooland/toofar/runner"
 
 	"github.com/brutella/hc"
 	"github.com/brutella/hc/accessory"
-	"github.com/brutella/hc/util"
-	// "github.com/brutella/hc/characteristic"
 	"github.com/brutella/hc/log"
-	// "github.com/brutella/hc/service"
+	"github.com/brutella/hc/util"
 	"sync"
 )
 
@@ -84,164 +79,12 @@ func (h HCPlatform) Shutdown() platform.Control {
 	return h
 }
 
-// AddAccessory registers a device with HC and does basic setup
-// MOST devices will be set up by their own platform's AddAccessory()
-// the various platforms call this after doing their work if a UI is needed
+// AddAccessory registers a device with HC
 func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
-	switch a.Type {
-	case accessory.TypeSwitch:
-		switch a.Info.Model {
-		case "KP303(US)":
-			kp := devices.NewKP303(a.Info)
-			a.Device = kp
-			a.Accessory = kp.Accessory
-			a.Runner = genericSwitchActionRunner
-			for i := 0; i < len(kp.Outlets); i++ {
-				kp.Outlets[i].On.OnValueRemoteUpdate(func(newval bool) {
-					if newval {
-						actions := a.MatchActions("On")
-						runner.RunActions(actions)
-					} else {
-						actions := a.MatchActions("Off")
-						runner.RunActions(actions)
-					}
-				})
-			}
-		case "HS200(US)", "HS210(US)":
-			d := devices.NewHS200(a.Info)
-			a.Device = d
-			a.Accessory = d.Accessory
-			a.Runner = genericSwitchActionRunner
-			d.Switch.On.OnValueRemoteUpdate(func(newval bool) {
-				if newval {
-					actions := a.MatchActions("On")
-					runner.RunActions(actions)
-				} else {
-					actions := a.MatchActions("Off")
-					runner.RunActions(actions)
-				}
-			})
-		case "HS103(US)":
-			d := devices.NewHS103(a.Info)
-			a.Device = d
-			a.Accessory = d.Accessory
-			a.Runner = genericSwitchActionRunner
-			d.Outlet.On.OnValueRemoteUpdate(func(newval bool) {
-				if newval {
-					actions := a.MatchActions("On")
-					runner.RunActions(actions)
-				} else {
-					actions := a.MatchActions("Off")
-					runner.RunActions(actions)
-				}
-			})
-		case "KP115(US)":
-			d := devices.NewKP115(a.Info)
-			a.Device = d
-			a.Accessory = d.Accessory
-			a.Runner = genericSwitchActionRunner
-			d.Outlet.On.OnValueRemoteUpdate(func(newval bool) {
-				if newval {
-					actions := a.MatchActions("On")
-					runner.RunActions(actions)
-				} else {
-					actions := a.MatchActions("Off")
-					runner.RunActions(actions)
-				}
-			})
-		default:
-			log.Info.Println("adding generic switch")
-			d := accessory.NewSwitch(a.Info)
-			a.Device = d
-			a.Accessory = d.Accessory
-			a.Runner = genericSwitchActionRunner
-			d.Switch.On.OnValueRemoteUpdate(func(newval bool) {
-				if newval {
-					actions := a.MatchActions("On")
-					runner.RunActions(actions)
-				} else {
-					actions := a.MatchActions("Off")
-					runner.RunActions(actions)
-				}
-			})
-		}
-	/* case accessory.TypeAudioReceiver:
-	switch a.Info.Model {
-	case "onkyo-controller":
-		log.Info.Println("adding onkyo-controller")
-		oc := devices.NewOnkyoController(a.Info)
-		a.Device = oc
-		a.Accessory = oc.Accessory
-	default:
-		// nothing yet
-	} */
-	case accessory.TypeLightbulb:
-		switch a.Info.Model {
-		case "TRADFRI bulb E26 CWS opal 600lm":
-			clb := accessory.NewColoredLightbulb(a.Info)
-			a.Device = clb
-			a.Accessory = clb.Accessory
-		case "HS220(US)":
-			hs := devices.NewHS220(a.Info)
-			a.Device = hs
-			a.Accessory = hs.Accessory
-		case "TRADFRI bulb E26 WS opal 980lm":
-			tlb := devices.NewTempLightbulb(a.Info)
-			a.Device = tlb
-			a.Accessory = tlb.Accessory
-		case "LTD010":
-			tlb := devices.NewTempLightbulb(a.Info)
-			a.Device = tlb
-			a.Accessory = tlb.Accessory
-		default:
-			log.Info.Printf("unknown lightbulb type, using generic: [%s]", a.Info.Model)
-			lb := accessory.NewLightbulb(a.Info)
-			a.Device = lb
-			a.Accessory = lb.Accessory
-		}
-	case accessory.TypeSensor:
-		switch a.Info.Model {
-		case "OS Sensors":
-			a.Device = devices.NewLinuxSensors(a.Info)
-			a.Accessory = a.Device.(*devices.LinuxSensors).Accessory
-		case "OpenWeatherMap":
-			a.Device = devices.NewOpenWeatherMap(a.Info)
-			a.Accessory = a.Device.(*devices.OpenWeatherMap).Accessory
-		case "IQ Envoy":
-			a.Device = devices.NewEnvoy(a.Info)
-			a.Accessory = a.Device.(*devices.Envoy).Accessory
-		default:
-			a.Device = accessory.NewTemperatureSensor(a.Info, 20, -10, 55, 0.1)
-			a.Accessory = a.Device.(*accessory.Thermometer).Accessory
-		}
-	case accessory.TypeSecuritySystem:
-		switch a.Info.Model {
-		case "Konnected":
-			log.Info.Println("adding konnected")
-			// a.Accessory = accessory.New(a.Info, a.Type)
-		default:
-			// nothing
-		}
-	case accessory.TypeTelevision:
-		switch a.Info.Manufacturer {
-		case "ONKYO":
-			tx := devices.NewOnkyoReceiver(a.Info)
-			a.Device = tx
-			a.Accessory = tx.Accessory
-		case "Samsung":
-			s := devices.NewSamsungTV(a.Info)
-			a.Device = s
-			a.Accessory = s.Accessory
-		default:
-			log.Info.Printf("unknown television type, using generic: [%s]", a.Info.Manufacturer)
-			tv := accessory.NewTelevision(a.Info)
-			a.Device = tv
-			a.Accessory = tv.Accessory
-		}
-	default:
-		log.Info.Printf("unknown accessory type, using generic: [%s]", a.Info.Model)
-		a.Accessory = accessory.New(a.Info, a.Type)
-		a.Device = a.Accessory
+	// catch devices that didn't get migrated properly
+	if a.Accessory == nil {
+		log.Info.Printf("accessory unset: %v", a.Info)
+		return
 	}
 
 	a.Accessory.OnIdentify(func() {
@@ -266,8 +109,4 @@ func (h HCPlatform) GetAccessory(name string) (*tfaccessory.TFAccessory, bool) {
 // Background runs the various background tasks: none for HC
 func (h HCPlatform) Background() {
 	// pull the dummy switches and confirm their state?
-}
-
-func genericSwitchActionRunner(a *tfaccessory.TFAccessory, action *action.Action) {
-	log.Info.Printf("generic switch action runner: %+v %+v", a, action)
 }

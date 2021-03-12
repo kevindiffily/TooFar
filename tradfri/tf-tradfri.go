@@ -106,6 +106,20 @@ func (tp Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 			// h.AddAccessory // -- unsupported by HomeKit
 		case DeviceTypeLightbulb:
 			newDevice.Type = accessory.TypeLightbulb
+			switch d.Metadata.TypeName {
+			case "TRADFRI bulb E26 CWS opal 600lm": // Ikea bulb
+				clb := accessory.NewColoredLightbulb(a.Info)
+				a.Device = clb
+				a.Accessory = clb.Accessory
+			case "TRADFRI bulb E26 WS opal 980lm": // Ikea bulb
+				tlb := devices.NewTempLightbulb(a.Info)
+				a.Device = tlb
+				a.Accessory = tlb.Accessory
+			case "LTD010": // Philips Hue bulb exposed via Tradfri gateway
+				tlb := devices.NewTempLightbulb(a.Info)
+				a.Device = tlb
+				a.Accessory = tlb.Accessory
+			}
 			h.AddAccessory(&newDevice)
 			lightbulbLogic(&newDevice, d)
 		case DeviceTypePlug:

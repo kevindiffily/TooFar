@@ -67,6 +67,9 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		return
 	}
 
+	a.Device = devices.NewLinuxSensors(a.Info)
+	a.Accessory = a.Device.(*devices.LinuxSensors).Accessory
+
 	// add to HC for GUI
 	h, _ := platform.GetPlatform("HomeControl")
 	h.AddAccessory(a)

@@ -12,9 +12,7 @@ import (
 	"net/http"
 	"sync"
 	"time"
-	// "io/ioutil"
 	"fmt"
-	goping "github.com/go-ping/ping"
 )
 
 // Platform is the platform handle for the Kasa stuff
@@ -106,27 +104,6 @@ func (p Platform) backgroundPuller() {
 			cs.Value = up
 		}
 	}
-}
-
-func oldping(a *tfaccessory.TFAccessory) int {
-	pinger, err := goping.NewPinger(a.IP)
-	// pinger.SetPrivileged(true)
-	// requires: setcap cap_net_raw=+ep /path/to/your/compiled/binary
-	if err != nil {
-		log.Info.Println(err.Error())
-		return 1
-	}
-	pinger.Count = 3
-	err = pinger.Run()
-	if err != nil {
-		log.Info.Println(err.Error())
-		return 1
-	}
-	if pinger.PacketsSent != pinger.PacketsRecv {
-		log.Info.Printf("Sent %d, Rec: %d", pinger.PacketsSent, pinger.PacketsRecv)
-		return 1
-	}
-	return 0
 }
 
 func ping(a *tfaccessory.TFAccessory) int {

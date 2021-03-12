@@ -150,6 +150,9 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	// konnecteds are indexed by device IDs
 	konnecteds[a.Info.SerialNumber] = a
 
+	a.Device = devices.NewKonnected(a.Info)
+	a.Accessory = a.Device.(*devices.Konnected).Accessory
+
 	// add to HC for GUI
 	h, _ := platform.GetPlatform("HomeControl")
 	h.AddAccessory(a)

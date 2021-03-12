@@ -13,6 +13,7 @@ import (
 	"github.com/cloudkucooland/toofar/config"
 	"github.com/cloudkucooland/toofar/devices"
 	"github.com/cloudkucooland/toofar/platform"
+	"github.com/cloudkucooland/toofar/runner"
 	"net"
 	"sync"
 	"time"
@@ -70,7 +71,7 @@ func (k Platform) Startup(c *config.Config) platform.Control {
 			res := decrypt(buffer[0:n])
 			doUDPresponse(addr.IP.String(), res)
 		}
-		return
+		// return
 	}()
 
 	k.Running = true
@@ -125,20 +126,73 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	}
 
 	switch settings.Model {
-	case "HS103(US)":
-		a.Type = accessory.TypeSwitch
-	case "KP115(US)":
-		a.Type = accessory.TypeSwitch
-	case "HS200(US)":
-		a.Type = accessory.TypeSwitch
-	case "HS210(US)":
-		a.Type = accessory.TypeSwitch
-	case "HS220(US)":
-		a.Type = accessory.TypeLightbulb
 	case "KP303(US)":
 		a.Type = accessory.TypeSwitch
-	default:
+		kp := devices.NewKP303(a.Info)
+		a.Device = kp
+		a.Accessory = kp.Accessory
+		a.Runner = runner.GenericSwitchActionRunner
+		for i := 0; i < len(kp.Outlets); i++ {
+			kp.Outlets[i].On.OnValueRemoteUpdate(func(newval bool) {
+				if newval {
+					actions := a.MatchActions("On")
+					runner.RunActions(actions)
+				} else {
+					actions := a.MatchActions("Off")
+					runner.RunActions(actions)
+				}
+			})
+		}
+	case "HS200(US)", "HS210(US)":
 		a.Type = accessory.TypeSwitch
+		d := devices.NewHS200(a.Info)
+		a.Device = d
+		a.Accessory = d.Accessory
+		a.Runner = runner.GenericSwitchActionRunner
+		d.Switch.On.OnValueRemoteUpdate(func(newval bool) {
+			if newval {
+				actions := a.MatchActions("On")
+				runner.RunActions(actions)
+			} else {
+				actions := a.MatchActions("Off")
+				runner.RunActions(actions)
+			}
+		})
+	case "HS103(US)":
+		a.Type = accessory.TypeSwitch
+		d := devices.NewHS103(a.Info)
+		a.Device = d
+		a.Accessory = d.Accessory
+		a.Runner = runner.GenericSwitchActionRunner
+		d.Outlet.On.OnValueRemoteUpdate(func(newval bool) {
+			if newval {
+				actions := a.MatchActions("On")
+				runner.RunActions(actions)
+			} else {
+				actions := a.MatchActions("Off")
+				runner.RunActions(actions)
+			}
+		})
+	case "KP115(US)":
+		a.Type = accessory.TypeSwitch
+		d := devices.NewKP115(a.Info)
+		a.Device = d
+		a.Accessory = d.Accessory
+		a.Runner = runner.GenericSwitchActionRunner
+		d.Outlet.On.OnValueRemoteUpdate(func(newval bool) {
+			if newval {
+				actions := a.MatchActions("On")
+				runner.RunActions(actions)
+			} else {
+				actions := a.MatchActions("Off")
+				runner.RunActions(actions)
+			}
+		})
+	case "HS220(US)":
+		a.Type = accessory.TypeLightbulb
+		hs := devices.NewHS220(a.Info)
+		a.Device = hs
+		a.Accessory = hs.Accessory
 	}
 
 	log.Info.Printf("adding [%s]: [%s]", a.Info.Name, a.Info.Model)

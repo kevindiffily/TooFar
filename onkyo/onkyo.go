@@ -73,6 +73,9 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	}
 
 	onkyos[a.Name] = a
+	tx := devices.NewOnkyoReceiver(a.Info)
+	a.Device = tx
+	a.Accessory = tx.Accessory
 
 	// add to HC for GUI
 	log.Info.Printf("adding [%s]: [%s]", a.Info.Name, a.Info.Model)

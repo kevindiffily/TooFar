@@ -71,6 +71,9 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 
 	owms[a.Name] = a
 
+	a.Device = devices.NewOpenWeatherMap(a.Info)
+	a.Accessory = a.Device.(*devices.OpenWeatherMap).Accessory
+
 	h, _ := platform.GetPlatform("HomeControl")
 	h.AddAccessory(a)
 	a.UpdateIDs()

@@ -139,13 +139,14 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 
 	samsungs[a.Name] = a
 
+	d := devices.NewSamsungTV(a.Info)
+	a.Device = d
+	a.Accessory = d.Accessory
+
 	// add to HC for GUI
 	log.Info.Printf("adding [%s]: [%s]", a.Info.Name, a.Info.Model)
 	h, _ := platform.GetPlatform("HomeControl")
 	h.AddAccessory(a)
-
-	d := a.Device.(*devices.SamsungTV)
-	d.SamTV = dev
 
 	d.Television.ConfiguredName.SetValue(a.Info.Name)
 	d.AddInputs(inputNames)
@@ -153,7 +154,6 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	d.Television.On.OnValueRemoteUpdate(func(newstate bool) {
 		log.Info.Printf("setting power to %t (wake-on-lan not implemented)", newstate)
 		if err := d.SamTV.Key("KEY_POWER"); err != nil {
-			// d.Television.On.SetValue(false)
 			log.Info.Println(err.Error())
 		}
 	})
@@ -182,7 +182,7 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	a.Runner = runner
 }
 
-// GetAccessory looks up an onkyo device
+// GetAccessory looks up a Samsung device
 func (o Platform) GetAccessory(name string) (*tfaccessory.TFAccessory, bool) {
 	val, ok := samsungs[name]
 	return val, ok
@@ -190,13 +190,5 @@ func (o Platform) GetAccessory(name string) (*tfaccessory.TFAccessory, bool) {
 
 // Background starts up the go process to periodically update the onkyo values
 func (o Platform) Background() {
-	/* go func() {
-		for range time.Tick(time.Minute * 1) {
-			o.backgroundPuller()
-		}
-	}() */
-}
-
-func (o Platform) backgroundPuller() {
-	// gotta figure out how to get something useful out of the TV first...
+	// until I can crack the API, nothing to to here
 }

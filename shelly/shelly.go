@@ -1,5 +1,9 @@
 package shelly
 
+// this was the first thing written for TooFar, it needs to be updated:
+// -- create a go-shelly package
+// -- create a shelly device type here
+
 import (
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
 	"github.com/cloudkucooland/toofar/action"
@@ -160,6 +164,20 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	shellies[a.IP] = a
 
 	// add to HC for GUI
+	d := accessory.NewSwitch(a.Info)
+	a.Device = d
+	a.Accessory = d.Accessory
+	a.Runner = runner.GenericSwitchActionRunner
+	d.Switch.On.OnValueRemoteUpdate(func(newval bool) {
+		if newval {
+			actions := a.MatchActions("On")
+			runner.RunActions(actions)
+		} else {
+			actions := a.MatchActions("Off")
+			runner.RunActions(actions)
+		}
+	})
+
 	h, _ := platform.GetPlatform("HomeControl")
 	h.AddAccessory(a)
 	updateHCGUI(a, settings.Relays[0].IsOn)
@@ -194,6 +212,7 @@ func updateHCGUI(a *tfaccessory.TFAccessory, newstate bool) {
 	}
 }
 
+// these need to be in a dedicated go-shelly package
 func doRequest(a *tfaccessory.TFAccessory, method, url string) (*[]byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

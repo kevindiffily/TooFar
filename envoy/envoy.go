@@ -4,16 +4,14 @@ import (
 	"github.com/brutella/hc/accessory"
 	"github.com/brutella/hc/characteristic"
 	"github.com/brutella/hc/log"
+	"github.com/cloudkucooland/go-envoy"
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
 	"github.com/cloudkucooland/toofar/config"
 	"github.com/cloudkucooland/toofar/devices"
 	"github.com/cloudkucooland/toofar/platform"
-	// "net/http"
+	"strconv"
 	"sync"
 	"time"
-	// "io/ioutil"
-	"github.com/cloudkucooland/go-envoy"
-	"strconv"
 )
 
 // Platform is the platform handle for the Kasa stuff
@@ -48,6 +46,10 @@ func (p Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		return
 	}
 	settings, err := e.Info()
+	if err != nil {
+		log.Info.Println(err)
+		return
+	}
 
 	a.Type = accessory.TypeSensor
 	a.Info.Name = a.Name
@@ -60,6 +62,9 @@ func (p Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		a.Info.ID = 9999
 	}
 	a.Info.ID = uint64(id)
+
+	a.Device = devices.NewEnvoy(a.Info)
+	a.Accessory = a.Device.(*devices.Envoy).Accessory
 
 	h, _ := platform.GetPlatform("HomeControl")
 	h.AddAccessory(a)
@@ -77,9 +82,19 @@ func (p Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	if now == 0.0 {
 		a.Device.(*devices.Envoy).Active.SetValue(characteristic.ActiveInactive)
 		a.Device.(*devices.Envoy).LightSensor.CurrentAmbientLightLevel.SetValue(0.0001)
+		a.Device.(*devices.Envoy).DailyProduction.ChargingState.SetValue(characteristic.ChargingStateNotCharging)
 	} else {
 		a.Device.(*devices.Envoy).LightSensor.CurrentAmbientLightLevel.SetValue(now)
+		a.Device.(*devices.Envoy).DailyProduction.ChargingState.SetValue(characteristic.ChargingStateCharging)
 	}
+
+	daily, err := e.Today()
+	if err != nil {
+		log.Info.Println(err.Error())
+		daily = 0.0
+	}
+	daily = daily / 1000.0
+	a.Device.(*devices.Envoy).DailyProduction.BatteryLevel.SetValue(int(daily))
 }
 
 // GetAccessory looks up a device by IP address
@@ -88,7 +103,7 @@ func (p Platform) GetAccessory(ip string) (*tfaccessory.TFAccessory, bool) {
 	return val, ok
 }
 
-// Background runs a background Go task periodically pinging everything
+// Background pulls the envoys every 300 seconds
 func (p Platform) Background() {
 	go func() {
 		for range time.Tick(time.Second * 300) {
@@ -104,17 +119,27 @@ func (p Platform) backgroundPuller() {
 			log.Info.Println(err.Error())
 			return
 		}
-		if now == 0.0 {
+		if now == 0.0 { // no production, mark as inactive for Home.app automation
 			a.Device.(*devices.Envoy).LightSensor.CurrentAmbientLightLevel.SetValue(0.0001)
 			if a.Device.(*devices.Envoy).Active.GetValue() == characteristic.ActiveActive {
 				a.Device.(*devices.Envoy).Active.SetValue(characteristic.ActiveInactive)
+				a.Device.(*devices.Envoy).DailyProduction.ChargingState.SetValue(characteristic.ChargingStateNotCharging)
 			}
 		} else {
-			// log.Info.Printf("Envoy Production: %f\n", now)
 			a.Device.(*devices.Envoy).LightSensor.CurrentAmbientLightLevel.SetValue(now)
 			if a.Device.(*devices.Envoy).Active.GetValue() == characteristic.ActiveInactive {
 				a.Device.(*devices.Envoy).Active.SetValue(characteristic.ActiveActive)
+				a.Device.(*devices.Envoy).DailyProduction.ChargingState.SetValue(characteristic.ChargingStateCharging)
 			}
 		}
+
+		daily, err := a.Device.(*devices.Envoy).Envoy.Today()
+		if err != nil {
+			log.Info.Println(err.Error())
+			daily = 0.0
+		}
+		// log.Info.Printf("Daily total: %2.2f", daily)
+		daily = daily / 1000.0
+		a.Device.(*devices.Envoy).DailyProduction.BatteryLevel.SetValue(int(daily))
 	}
 }

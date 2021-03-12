@@ -4,6 +4,7 @@ package runner
 
 import (
 	"github.com/brutella/hc/log"
+	tfaccessory "github.com/cloudkucooland/toofar/accessory"
 	"github.com/cloudkucooland/toofar/action"
 	"github.com/cloudkucooland/toofar/platform"
 )
@@ -31,4 +32,8 @@ func runAction(a *action.Action) {
 	} else {
 		log.Info.Printf("[%s] does not have an action runner", d.Name)
 	}
+}
+
+func GenericSwitchActionRunner(a *tfaccessory.TFAccessory, action *action.Action) {
+	log.Info.Printf("generic switch action runner: %+v %+v", a, action)
 }
