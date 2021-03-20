@@ -10,10 +10,11 @@ import (
 // present the solar production as Lux sensor
 type Envoy struct {
 	*accessory.Accessory
-	LightSensor     *service.LightSensor
-	Active          *characteristic.Active
-	DailyProduction *service.BatteryService
-	Envoy           *envoy.Envoy
+	LightSensor      *service.LightSensor
+	Active           *characteristic.Active
+	DailyProduction  *service.BatteryService
+	DailyConsumption *service.BatteryService
+	Envoy            *envoy.Envoy
 }
 
 func NewEnvoy(info accessory.Info) *Envoy {
@@ -33,14 +34,19 @@ func NewEnvoy(info accessory.Info) *Envoy {
 
 	acc.AddService(acc.LightSensor.Service)
 
-	// use a battery type to expose the daily total
 	acc.DailyProduction = service.NewBatteryService()
 	acc.DailyProduction.BatteryLevel.SetValue(0)
-
 	blname := characteristic.NewName()
-	blname.SetValue("Daily Solar Total")
+	blname.SetValue("Daily Solar Production")
 	acc.DailyProduction.AddCharacteristic(blname.Characteristic)
-
 	acc.AddService(acc.DailyProduction.Service)
+
+	acc.DailyConsumption = service.NewBatteryService()
+	acc.DailyConsumption.BatteryLevel.SetValue(0)
+	conname := characteristic.NewName()
+	conname.SetValue("Daily Solar Consumption")
+	acc.DailyConsumption.AddCharacteristic(conname.Characteristic)
+	acc.AddService(acc.DailyConsumption.Service)
+
 	return &acc
 }

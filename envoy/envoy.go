@@ -74,27 +74,29 @@ func (p Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	log.Info.Printf("Enphase IQ Envoy ID: %s\n", a.Info.SerialNumber)
 
 	// set initial state
-	now, err := e.Now()
+	nowprod, nowcon, err := e.Now()
 	if err != nil {
 		log.Info.Println(err.Error())
-		now = 0.0
 	}
-	if now == 0.0 {
+	if nowprod < nowcon {
 		a.Device.(*devices.Envoy).Active.SetValue(characteristic.ActiveInactive)
 		a.Device.(*devices.Envoy).LightSensor.CurrentAmbientLightLevel.SetValue(0.0001)
 		a.Device.(*devices.Envoy).DailyProduction.ChargingState.SetValue(characteristic.ChargingStateNotCharging)
+		a.Device.(*devices.Envoy).DailyConsumption.ChargingState.SetValue(characteristic.ChargingStateCharging)
 	} else {
-		a.Device.(*devices.Envoy).LightSensor.CurrentAmbientLightLevel.SetValue(now)
+		a.Device.(*devices.Envoy).LightSensor.CurrentAmbientLightLevel.SetValue(nowprod)
 		a.Device.(*devices.Envoy).DailyProduction.ChargingState.SetValue(characteristic.ChargingStateCharging)
+		a.Device.(*devices.Envoy).DailyConsumption.ChargingState.SetValue(characteristic.ChargingStateNotCharging)
 	}
 
-	daily, err := e.Today()
+	production, consumption, err := e.Today()
 	if err != nil {
 		log.Info.Println(err.Error())
-		daily = 0.0
 	}
-	daily = daily / 1000.0
-	a.Device.(*devices.Envoy).DailyProduction.BatteryLevel.SetValue(int(daily))
+	production = production / 1000.0
+	a.Device.(*devices.Envoy).DailyProduction.BatteryLevel.SetValue(int(production))
+	consumption = consumption / 1000.0
+	a.Device.(*devices.Envoy).DailyConsumption.BatteryLevel.SetValue(int(consumption))
 }
 
 // GetAccessory looks up a device by IP address
@@ -114,32 +116,35 @@ func (p Platform) Background() {
 
 func (p Platform) backgroundPuller() {
 	for _, a := range envoys {
-		now, err := a.Device.(*devices.Envoy).Envoy.Now()
+		nowprod, nowcon, err := a.Device.(*devices.Envoy).Envoy.Now()
 		if err != nil {
 			log.Info.Println(err.Error())
 			return
 		}
-		if now == 0.0 { // no production, mark as inactive for Home.app automation
+		if nowprod < nowcon { // no consumption exceeds production, mark this for for Home.app automation
 			a.Device.(*devices.Envoy).LightSensor.CurrentAmbientLightLevel.SetValue(0.0001)
 			if a.Device.(*devices.Envoy).Active.GetValue() == characteristic.ActiveActive {
 				a.Device.(*devices.Envoy).Active.SetValue(characteristic.ActiveInactive)
 				a.Device.(*devices.Envoy).DailyProduction.ChargingState.SetValue(characteristic.ChargingStateNotCharging)
+				a.Device.(*devices.Envoy).DailyConsumption.ChargingState.SetValue(characteristic.ChargingStateCharging)
 			}
 		} else {
-			a.Device.(*devices.Envoy).LightSensor.CurrentAmbientLightLevel.SetValue(now)
+			a.Device.(*devices.Envoy).LightSensor.CurrentAmbientLightLevel.SetValue(nowprod)
 			if a.Device.(*devices.Envoy).Active.GetValue() == characteristic.ActiveInactive {
 				a.Device.(*devices.Envoy).Active.SetValue(characteristic.ActiveActive)
 				a.Device.(*devices.Envoy).DailyProduction.ChargingState.SetValue(characteristic.ChargingStateCharging)
+				a.Device.(*devices.Envoy).DailyConsumption.ChargingState.SetValue(characteristic.ChargingStateNotCharging)
 			}
 		}
 
-		daily, err := a.Device.(*devices.Envoy).Envoy.Today()
+		production, consumption, err := a.Device.(*devices.Envoy).Envoy.Today()
 		if err != nil {
 			log.Info.Println(err.Error())
-			daily = 0.0
 		}
 		// log.Info.Printf("Daily total: %2.2f", daily)
-		daily = daily / 1000.0
-		a.Device.(*devices.Envoy).DailyProduction.BatteryLevel.SetValue(int(daily))
+		production = production / 1000.0
+		a.Device.(*devices.Envoy).DailyProduction.BatteryLevel.SetValue(int(production))
+		consumption = consumption / 1000.0
+		a.Device.(*devices.Envoy).DailyConsumption.BatteryLevel.SetValue(int(consumption))
 	}
 }

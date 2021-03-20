@@ -1,6 +1,7 @@
 package ping
 
 import (
+	"fmt"
 	"github.com/brutella/hc/accessory"
 	"github.com/brutella/hc/characteristic"
 	"github.com/brutella/hc/log"
@@ -12,7 +13,6 @@ import (
 	"net/http"
 	"sync"
 	"time"
-	"fmt"
 )
 
 // Platform is the platform handle for the Kasa stuff
