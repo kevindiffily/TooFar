@@ -74,7 +74,7 @@ func (p Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	log.Info.Printf("Enphase IQ Envoy ID: %s\n", a.Info.SerialNumber)
 
 	// set initial state
-	nowprod, nowcon, err := e.Now()
+	nowprod, nowcon, _, err := e.Now()
 	if err != nil {
 		log.Info.Println(err.Error())
 	}
@@ -89,7 +89,7 @@ func (p Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		a.Device.(*devices.Envoy).DailyConsumption.ChargingState.SetValue(characteristic.ChargingStateNotCharging)
 	}
 
-	production, consumption, err := e.Today()
+	production, consumption, _, err := e.Today()
 	if err != nil {
 		log.Info.Println(err.Error())
 	}
@@ -116,7 +116,7 @@ func (p Platform) Background() {
 
 func (p Platform) backgroundPuller() {
 	for _, a := range envoys {
-		nowprod, nowcon, err := a.Device.(*devices.Envoy).Envoy.Now()
+		nowprod, nowcon, _, err := a.Device.(*devices.Envoy).Envoy.Now()
 		if err != nil {
 			log.Info.Println(err.Error())
 			return
@@ -137,7 +137,7 @@ func (p Platform) backgroundPuller() {
 			}
 		}
 
-		production, consumption, err := a.Device.(*devices.Envoy).Envoy.Today()
+		production, consumption, _, err := a.Device.(*devices.Envoy).Envoy.Today()
 		if err != nil {
 			log.Info.Println(err.Error())
 		}

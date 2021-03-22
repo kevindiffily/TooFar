@@ -1,6 +1,10 @@
+Next:
+Move shelly and other things to devices and logic into the device handlers
+simplify handlers, use a single map[ip]device instead of one per platform
+other cleanups/refactors now that we have many platforms and device types
+much of the hc/ logic needs to be pushed to the proper handlers, strip that one to the core
+
 Soon:
-research using the TV source selector to OnkyoController for setting listening mode (etc?)
-Report status changes from Onkyo to OnkyoController
 Why doesn't adding the AirQuality sensor to the OWM device work?
 
 Later:
@@ -8,4 +12,3 @@ Fix Kasa discovery (adding discovered devices) -- 99% done
 Improve LinuxSensors to support fans and other sensors
 Add Shelly discovery (once Kasa discovery is fixed)
 Figure out and add support for WifiCapabilities -- requres work in HomeControl -- No good docs out there
-
