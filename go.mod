@@ -33,8 +33,3 @@ require (
 	google.golang.org/genproto v0.0.0-20210319143718-93e7006c17a6 // indirect
 	google.golang.org/grpc v1.36.0 // indirect
 )
-
-// replace github.com/cloudkucooland/go-eiscp => ../go-eiscp
-replace github.com/cloudkucooland/go-envoy => ../go-envoy
-
-// replace github.com/brutella/hc => ../hc
