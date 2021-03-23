@@ -16,28 +16,40 @@ import (
 	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
 	// "strings"
 	"sync"
 	"time"
 )
 
+type system struct {
+	Mac       string     `json:"mac"`
+	IP        string     `json:"ip",omitempty`
+	Gateway   string     `json:"gw",omitempty`
+	Netmask   string     `json:"nm",omitempty`
+	Hardware  string     `json:"hwVersion",omitempty`
+	RSSI      int8       `json:"rssi",omitempty`
+	Software  string     `json:"swVersion",omitempty`
+	Port      uint16     `json:"port",omitempty`
+	Uptime    uint64     `json:"uptime",omitempty`
+	Heap      uint64     `json:"heap",omitempty`
+	Settings  settings   `json:"settings"`
+	Sensors   []sensor   `json:"sensors"`
+	DBSensors []sensor   `json:"ds18b20_sensors"`
+	Actuators []actuator `json:"actuators"`
+	DHTs      []dht      `json:"dht_sensors"`
+}
+
 type settings struct {
-	Mac          string
-	Name         string
-	IsOn         int // this is not correct, I assume it will be one of the sensors
-	Device       *devices.Konnected
-	Firmware     string
-	EndpointType string     `json:"endpoint_type",omitempty`
-	Endpoint     string     `json:"endpoint",omitempty`
-	Token        string     `json:"token",omitempty`
-	Sensors      []sensor   `json:"sensors",omitempty`
-	Actuators    []actuator `json:"actuators",omitempty`
-	DHTs         []dht      `json:"dht_sensors",omitempty`
+	EndpointType string `json:"endpoint_type",omitempty`
+	Endpoint     string `json:"endpoint",omitempty`
+	Token        string `json:"token",omitempty`
 }
 
 type sensor struct {
-	Pin    uint8 `json:"pin"`
-	Invert bool
+	Pin   uint8 `json:"pin"`
+	State uint8 `json:"state"`
+	// Invert bool  `json:"invert",omitempty`
 }
 
 type actuator struct {
@@ -64,6 +76,14 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	device := vars["device"]
 
+	d, err := httputil.DumpRequest(r, true)
+	if err != nil {
+		log.Info.Printf("konnected: dump request: %s", err.Error())
+		http.Error(w, `{ "status": "unable to read" }`, http.StatusNotAcceptable)
+		return
+	}
+	log.Info.Println(string(d))
+
 	s, ok := platform.GetPlatform("Konnected")
 	if !ok {
 		log.Info.Print("unable to get konnected platform, giving up")
@@ -71,16 +91,34 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// index these by mac address w/o :
 	a, ok := s.GetAccessory(device)
 	if !ok {
-		// log.Info.Printf("shelly state from unknown device (%s), ignoring", remoteAddr)
+		log.Info.Printf("konnected state from unknown device (%s / %s), ignoring", r.RemoteAddr, device)
 		http.Error(w, `{ "status": "bad" }`, http.StatusNotAcceptable)
 		return
 	}
-	k := a.Device.(*devices.Konnected)
-	log.Info.Printf("%+v", k)
 
+	// k := a.Device.(*devices.Konnected)
+	jBlob, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Info.Printf("konnected: unable to read update")
+		http.Error(w, `{ "status": "unable to read" }`, http.StatusNotAcceptable)
+		return
+	}
+	if string(jBlob) == "" {
+		log.Info.Printf("konnected: sent empty message")
+		fmt.Fprint(w, `{ "status": "OK" }`)
+
+		// trigger a manual pull since ... is teh dumbz
+		err := getStatusAndUpdate(a)
+		if err != nil {
+			log.Info.Println(err.Error())
+			// return
+		}
+		return
+	}
+
+	log.Info.Printf("sent from %+v: %s", a.Name, string(jBlob))
 	// do stuff here
 	fmt.Fprint(w, `{ "status": "OK" }`)
 }
@@ -99,12 +137,10 @@ func (s Platform) Startup(c *config.Config) platform.Control {
 	s.Running = true
 
 	timeout := config.Get().KonnectedTimeout
-	// unset, default to something reasonable
 	if timeout == 0 {
 		timeout = 10
 	}
 
-	// these values are aggressive, probably not good for sites with lots of shellies
 	tr := &http.Transport{
 		MaxIdleConns:    5,
 		IdleConnTimeout: 30 * time.Second,
@@ -127,21 +163,21 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 
 	a.Type = accessory.TypeSecuritySystem
 
-	settings, err := getSettings(a)
+	details, err := getDetails(a)
 	if err != nil {
 		log.Info.Printf("unable to identify Konnected device: %s", err.Error())
 		return
 	}
-	a.Info.Name = settings.Name
+	a.Info.Name = a.Name
 	a.Info.SerialNumber = a.Username
 	a.Info.Manufacturer = "Konnected.io"
-	a.Info.Model = "something"
-	a.Info.FirmwareRevision = settings.Firmware
+	a.Info.Model = details.Hardware
+	a.Info.FirmwareRevision = details.Software
 
 	// convert the Mac address into a uint64 for the ID
-	mac, err := hex.DecodeString(a.Username)
+	mac, err := hex.DecodeString(a.Username) // details.Mac
 	if err != nil {
-		log.Info.Printf("weird shelly MAC: %s", err.Error())
+		log.Info.Printf("weird konnected MAC: %s", err.Error())
 	}
 	for k, v := range mac {
 		a.Info.ID += uint64(v) << (12 - k) * 8
@@ -153,26 +189,16 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	a.Device = devices.NewKonnected(a.Info)
 	a.Accessory = a.Device.(*devices.Konnected).Accessory
 
+	for _, v := range details.Sensors {
+		name := fmt.Sprintf("Zone %d", v.Pin)
+		p := devices.NewKonnectedPinSvc(name)
+		p.ContactSensorState.SetValue(int(v.State))
+		a.Device.(*devices.Konnected).Pins[v.Pin] = p
+		a.Accessory.AddService(p.Service)
+	}
 	// add to HC for GUI
 	h, _ := platform.GetPlatform("HomeControl")
 	h.AddAccessory(a)
-
-	// update UI to reflect the current state
-
-	// sw := a.Device.(*accessory.Switch)
-	// install callback: if we get an update from HC, deal with it
-	/* sw.Switch.On.OnValueRemoteUpdate(func(newstate bool) {
-		log.Info.Printf("setting [%s] to [%t] from HC handler", a.Name, newstate)
-		state, err := setState(a, newstate)
-		if err != nil {
-			log.Info.Println(err.Error())
-			return
-		}
-		if state.IsOn != newstate {
-			log.Info.Printf("unable to update shelly state to %t", newstate)
-			updateHCGUI(a, state.IsOn)
-		}
-	}) */
 
 	a.Runner = kRunner
 }
@@ -186,7 +212,6 @@ func doRequest(a *tfaccessory.TFAccessory, method, url string) (*[]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	// req.SetBasicAuth(a.Username, a.Password)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -200,34 +225,56 @@ func doRequest(a *tfaccessory.TFAccessory, method, url string) (*[]byte, error) 
 	return &body, nil
 }
 
-// GetAccessory looks up a Shelly device by IP address
-func (s Platform) GetAccessory(ip string) (*tfaccessory.TFAccessory, bool) {
-	val, ok := konnecteds[ip]
+func (s Platform) GetAccessory(mac string) (*tfaccessory.TFAccessory, bool) {
+	val, ok := konnecteds[mac]
 	return val, ok
 }
 
-/* mappings {
-  path("/device/:mac/:id/:deviceState") { action: [ PUT: "childDeviceStateUpdate"] }
-  path("/device/:mac") { action: [ PUT: "childDeviceStateUpdate", GET: "getDeviceState" ] }
-  path("/ping") { action: [ GET: "devicePing"] }
-}
-
-https://github.com/konnected-io/homebridge-konnected/blob/master/src/platform.ts
-*/
-func getSettings(a *tfaccessory.TFAccessory) (*settings, error) {
-	url := fmt.Sprintf("http://%s/device/%s", a.IP, a.Username)
+func getDetails(a *tfaccessory.TFAccessory) (*system, error) {
+	url := fmt.Sprintf("http://%s/status", a.IP)
 	body, err := doRequest(a, "GET", url)
 	if err != nil {
 		return nil, err
 	}
-	var sd settings
-	if err := json.Unmarshal(*body, &sd); err != nil {
+	log.Info.Println(string(*body))
+
+	var s system
+	if err := json.Unmarshal(*body, &s); err != nil {
 		return nil, err
 	}
-	return &sd, nil
+	log.Info.Printf("%+v", s)
+	return &s, nil
 }
 
-// Background starts up the go process to periodically verify the shelly's state
+func getStatus(a *tfaccessory.TFAccessory) (*[]sensor, error) {
+	url := fmt.Sprintf("http://%s/device", a.IP)
+	body, err := doRequest(a, "GET", url)
+	if err != nil {
+		return nil, err
+	}
+
+	var s []sensor
+	if err := json.Unmarshal(*body, &s); err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
+
+func getStatusAndUpdate(a *tfaccessory.TFAccessory) error {
+	status, err := getStatus(a)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range *status {
+		log.Info.Printf("Pin: %d State: %d", v.Pin, v.State)
+		if p, ok := a.Device.(*devices.Konnected).Pins[v.Pin]; ok {
+			p.ContactSensorState.SetValue(int(v.State))
+		}
+	}
+	return nil
+}
+
 func (k Platform) Background() {
 	kpr := config.Get().KonnectedPullRate
 	if kpr == 0 {
@@ -242,14 +289,10 @@ func (k Platform) Background() {
 
 func (k Platform) backgroundPuller() {
 	for _, a := range konnecteds {
-		settings, err := getSettings(a)
+		err := getStatusAndUpdate(a)
 		if err != nil {
 			log.Info.Println(err.Error())
 			continue
-		}
-		log.Info.Printf("%+v", settings)
-		if a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.GetValue() != settings.IsOn {
-			a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.SetValue(settings.IsOn)
 		}
 	}
 }

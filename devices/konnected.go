@@ -11,6 +11,7 @@ type Konnected struct {
 	*accessory.Accessory
 
 	SecuritySystem *KonnectedSvc
+	Pins           map[uint8]*KonnectedPinSvc
 }
 
 func NewKonnected(info accessory.Info) *Konnected {
@@ -29,6 +30,8 @@ func NewKonnected(info accessory.Info) *Konnected {
 	alarmType.SetValue(1)
 	acc.SecuritySystem.AddCharacteristic(alarmType.Characteristic)
 
+	acc.Pins = make(map[uint8]*KonnectedPinSvc)
+
 	return &acc
 }
 
@@ -43,11 +46,32 @@ func NewKonnectedSvc() *KonnectedSvc {
 	svc := KonnectedSvc{}
 	svc.Service = service.New(service.TypeSecuritySystem)
 
-	characteristic.NewSecuritySystemCurrentState()
+	svc.SecuritySystemCurrentState = characteristic.NewSecuritySystemCurrentState()
 	svc.AddCharacteristic(svc.SecuritySystemCurrentState.Characteristic)
 
 	svc.SecuritySystemTargetState = characteristic.NewSecuritySystemTargetState()
 	svc.AddCharacteristic(svc.SecuritySystemTargetState.Characteristic)
+
+	return &svc
+}
+
+type KonnectedPinSvc struct {
+	*service.Service
+
+	ContactSensorState *characteristic.ContactSensorState
+	Name               *characteristic.Name
+}
+
+func NewKonnectedPinSvc(name string) *KonnectedPinSvc {
+	svc := KonnectedPinSvc{}
+	svc.Service = service.New(service.TypeContactSensor)
+
+	svc.ContactSensorState = characteristic.NewContactSensorState()
+	svc.AddCharacteristic(svc.ContactSensorState.Characteristic)
+
+	svc.Name = characteristic.NewName()
+	svc.Name.SetValue(name)
+	svc.AddCharacteristic(svc.Name.Characteristic)
 
 	return &svc
 }

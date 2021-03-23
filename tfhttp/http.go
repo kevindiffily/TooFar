@@ -30,6 +30,7 @@ func (h Platform) Startup(c *config.Config) platform.Control {
 	r.HandleFunc("/", homeHandler)
 	r.HandleFunc("/shelly/{cmd}", shelly.Handler)
 	r.HandleFunc("/konnected/device/{device}", konnected.Handler)
+	r.HandleFunc("/konnected/{device}", konnected.Handler)
 
 	// register some middleware to ensure that only local IP addresses can connect
 
