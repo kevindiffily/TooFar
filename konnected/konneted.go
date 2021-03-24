@@ -16,7 +16,7 @@ import (
 	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
-	"net/http/httputil"
+	// "net/http/httputil"
 	// "strings"
 	"sync"
 	"time"
@@ -73,16 +73,15 @@ type command struct {
 // Handler is registered with the HTTP platform
 // it listens for Konnected devices and respond appropriately
 func Handler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	device := vars["device"]
-
-	d, err := httputil.DumpRequest(r, true)
-	if err != nil {
-		log.Info.Printf("konnected: dump request: %s", err.Error())
-		http.Error(w, `{ "status": "unable to read" }`, http.StatusNotAcceptable)
-		return
-	}
-	log.Info.Println(string(d))
+	/*
+		    d, err := httputil.DumpRequest(r, true)
+			if err != nil {
+				log.Info.Printf("konnected: dump request: %s", err.Error())
+				http.Error(w, `{ "status": "unable to read" }`, http.StatusNotAcceptable)
+				return
+			}
+			log.Info.Println(string(d))
+	*/
 
 	s, ok := platform.GetPlatform("Konnected")
 	if !ok {
@@ -91,6 +90,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	vars := mux.Vars(r)
+	// log.Info.Printf("%+v\n", vars)
+	device := vars["device"]
 	a, ok := s.GetAccessory(device)
 	if !ok {
 		log.Info.Printf("konnected state from unknown device (%s / %s), ignoring", r.RemoteAddr, device)
@@ -98,28 +100,45 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// k := a.Device.(*devices.Konnected)
+	/* if err := r.ParseForm(); err != nil {
+		log.Info.Printf("unable to parse")
+		http.Error(w, `{ "status": "bad" }`, http.StatusNotAcceptable)
+		return
+	}
+	// r.PostForm()
+	*/
+
+	// match token, if it were sent
+
 	jBlob, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Info.Printf("konnected: unable to read update")
-		http.Error(w, `{ "status": "unable to read" }`, http.StatusNotAcceptable)
+		http.Error(w, `{ "status": "unable to read" }`, http.StatusInternalServerError)
 		return
 	}
 	if string(jBlob) == "" {
 		log.Info.Printf("konnected: sent empty message")
+		// acknowledge the notice so it doesn't retransmit
 		fmt.Fprint(w, `{ "status": "OK" }`)
 
-		// trigger a manual pull since ... is teh dumbz
+		// trigger a manual pull since it isn't sending the documented body content
 		err := getStatusAndUpdate(a)
 		if err != nil {
 			log.Info.Println(err.Error())
-			// return
 		}
 		return
 	}
 
+	var p sensor
 	log.Info.Printf("sent from %+v: %s", a.Name, string(jBlob))
-	// do stuff here
+	err = json.Unmarshal(jBlob, &p)
+	if err != nil {
+		log.Info.Printf("konnected: unable to understand update")
+		http.Error(w, `{ "status": "unable to understand" }`, http.StatusNotAcceptable)
+		return
+	}
+
+	a.Device.(*devices.Konnected).Pins[p.Pin].ContactSensorState.SetValue(int(p.State))
 	fmt.Fprint(w, `{ "status": "OK" }`)
 }
 
@@ -189,14 +208,28 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	a.Device = devices.NewKonnected(a.Info)
 	a.Accessory = a.Device.(*devices.Konnected).Accessory
 
+	// XXX specific to my system... provide general config interface
+	// provide way of showing as contact, occupancy or motion sensor
+	zones := map[uint8]string{
+		1: "Front Door",
+		2: "Back Door",
+		5: "Garage Door",
+		6: "Attic",
+		7: "Motion Sensor",
+		9: "System Armed",
+	}
+
 	for _, v := range details.Sensors {
-		name := fmt.Sprintf("Zone %d", v.Pin)
+		name, ok := zones[v.Pin]
+		if !ok {
+			name = "unknown pin/zone mapping"
+		}
 		p := devices.NewKonnectedPinSvc(name)
 		p.ContactSensorState.SetValue(int(v.State))
 		a.Device.(*devices.Konnected).Pins[v.Pin] = p
 		a.Accessory.AddService(p.Service)
 	}
-	// add to HC for GUI
+
 	h, _ := platform.GetPlatform("HomeControl")
 	h.AddAccessory(a)
 
@@ -267,9 +300,11 @@ func getStatusAndUpdate(a *tfaccessory.TFAccessory) error {
 	}
 
 	for _, v := range *status {
-		log.Info.Printf("Pin: %d State: %d", v.Pin, v.State)
+		// log.Info.Printf("Pin: %d State: %d", v.Pin, v.State)
 		if p, ok := a.Device.(*devices.Konnected).Pins[v.Pin]; ok {
-			p.ContactSensorState.SetValue(int(v.State))
+			if p.ContactSensorState.GetValue() != int(v.State) {
+				p.ContactSensorState.SetValue(int(v.State))
+			}
 		}
 	}
 	return nil
