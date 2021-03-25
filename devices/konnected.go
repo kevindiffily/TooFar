@@ -11,7 +11,7 @@ type Konnected struct {
 	*accessory.Accessory
 
 	SecuritySystem *KonnectedSvc
-	Pins           map[uint8]*KonnectedPinSvc
+	Pins           map[uint8]interface{}
 }
 
 func NewKonnected(info accessory.Info) *Konnected {
@@ -20,6 +20,7 @@ func NewKonnected(info accessory.Info) *Konnected {
 
 	acc.SecuritySystem = NewKonnectedSvc()
 	acc.AddService(acc.SecuritySystem.Service)
+	acc.SecuritySystem.SecuritySystemCurrentState.SetValue(3) // default to Off
 	acc.SecuritySystem.SecuritySystemTargetState.OnValueRemoteUpdate(func(newval int) {
 		// do the work to adjust the state
 		log.Info.Printf("HC requested system state change to %d", newval)
@@ -30,14 +31,13 @@ func NewKonnected(info accessory.Info) *Konnected {
 	alarmType.SetValue(1)
 	acc.SecuritySystem.AddCharacteristic(alarmType.Characteristic)
 
-	acc.Pins = make(map[uint8]*KonnectedPinSvc)
+	acc.Pins = make(map[uint8]interface{})
 
 	return &acc
 }
 
 type KonnectedSvc struct {
 	*service.Service
-
 	SecuritySystemCurrentState *characteristic.SecuritySystemCurrentState
 	SecuritySystemTargetState  *characteristic.SecuritySystemTargetState
 }
@@ -55,15 +55,15 @@ func NewKonnectedSvc() *KonnectedSvc {
 	return &svc
 }
 
-type KonnectedPinSvc struct {
+type KonnectedContactSensor struct {
 	*service.Service
 
 	ContactSensorState *characteristic.ContactSensorState
 	Name               *characteristic.Name
 }
 
-func NewKonnectedPinSvc(name string) *KonnectedPinSvc {
-	svc := KonnectedPinSvc{}
+func NewKonnectedContactSensor(name string) *KonnectedContactSensor {
+	svc := KonnectedContactSensor{}
 	svc.Service = service.New(service.TypeContactSensor)
 
 	svc.ContactSensorState = characteristic.NewContactSensorState()
@@ -74,4 +74,30 @@ func NewKonnectedPinSvc(name string) *KonnectedPinSvc {
 	svc.AddCharacteristic(svc.Name.Characteristic)
 
 	return &svc
+}
+
+type KonnectedMotionSensor struct {
+	*service.Service
+
+	MotionDetected *characteristic.MotionDetected
+	Name           *characteristic.Name
+}
+
+func NewKonnectedMotionSensor(name string) *KonnectedMotionSensor {
+	svc := KonnectedMotionSensor{}
+	svc.Service = service.New(service.TypeMotionSensor)
+
+	svc.MotionDetected = characteristic.NewMotionDetected()
+	svc.AddCharacteristic(svc.MotionDetected.Characteristic)
+
+	svc.Name = characteristic.NewName()
+	svc.Name.SetValue(name)
+	svc.AddCharacteristic(svc.Name.Characteristic)
+
+	return &svc
+}
+
+type KonnectedSystem struct {
+	// not displayed in HC
+	State bool
 }

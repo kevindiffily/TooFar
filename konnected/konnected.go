@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/brutella/hc/accessory"
+	"github.com/brutella/hc/characteristic"
 	"github.com/brutella/hc/log"
 	"github.com/gorilla/mux"
 	"io/ioutil"
@@ -119,8 +120,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		log.Info.Printf("konnected: sent empty message")
 		// acknowledge the notice so it doesn't retransmit
 		fmt.Fprint(w, `{ "status": "OK" }`)
-
-		// trigger a manual pull since it isn't sending the documented body content
+		// trigger a manual pull
 		err := getStatusAndUpdate(a)
 		if err != nil {
 			log.Info.Println(err.Error())
@@ -139,7 +139,21 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// tell homekit about the change
-	a.Device.(*devices.Konnected).Pins[p.Pin].ContactSensorState.SetValue(int(p.State))
+	if svc, ok := a.Device.(*devices.Konnected).Pins[p.Pin]; ok {
+		switch svc.(type) {
+		case *devices.KonnectedSystem:
+			// system pin changed
+			newVal := characteristic.SecuritySystemCurrentStateAwayArm
+			if p.State == 0 {
+				newVal = characteristic.SecuritySystemCurrentStateDisarmed
+			}
+			a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.SetValue(newVal)
+		case *devices.KonnectedMotionSensor:
+			svc.(*devices.KonnectedMotionSensor).MotionDetected.SetValue(p.State == 1)
+		default:
+			svc.(*devices.KonnectedContactSensor).ContactSensorState.SetValue(int(p.State))
+		}
+	}
 	fmt.Fprint(w, `{ "status": "OK" }`)
 }
 
@@ -209,26 +223,44 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	a.Device = devices.NewKonnected(a.Info)
 	a.Accessory = a.Device.(*devices.Konnected).Accessory
 
-	// XXX specific to my system... provide general config interface
-	// provide way of showing as contact, occupancy or motion sensor
-	zones := map[uint8]string{
-		1: "Front Door",
-		2: "Back Door",
-		5: "Garage Door",
-		6: "Attic",
-		7: "Motion Sensor",
-		9: "System Armed",
+	for _, v := range a.KonnectedZones {
+		switch v.Type {
+		case "system":
+			p := devices.KonnectedSystem{}
+			a.Device.(*devices.Konnected).Pins[v.Pin] = p
+			// no need for an HK display
+			log.Info.Printf("Konnected Pin: %d: %s (system)", v.Pin, v.Name)
+		case "motion":
+			p := devices.NewKonnectedMotionSensor(v.Name)
+			a.Device.(*devices.Konnected).Pins[v.Pin] = p
+			a.Accessory.AddService(p.Service)
+			log.Info.Printf("Konnected Pin: %d: %s (motion)", v.Pin, v.Name)
+		case "door":
+			p := devices.NewKonnectedContactSensor(v.Name)
+			a.Device.(*devices.Konnected).Pins[v.Pin] = p
+			a.Accessory.AddService(p.Service)
+			log.Info.Printf("Konnected Pin: %d: %s (contact)", v.Pin, v.Name)
+		default:
+			log.Info.Println("unknown KonnectedZone type")
+		}
 	}
 
 	for _, v := range details.Sensors {
-		name, ok := zones[v.Pin]
-		if !ok {
-			name = "unknown pin/zone mapping"
+		if p, ok := a.Device.(*devices.Konnected).Pins[v.Pin]; ok {
+			switch p.(type) {
+			case *devices.KonnectedSystem:
+				// system pin changed
+				newVal := characteristic.SecuritySystemCurrentStateAwayArm
+				if v.State == 0 {
+					newVal = characteristic.SecuritySystemCurrentStateDisarmed
+				}
+				a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.SetValue(newVal)
+			case *devices.KonnectedContactSensor:
+				p.(*devices.KonnectedContactSensor).ContactSensorState.SetValue(int(v.State))
+			case *devices.KonnectedMotionSensor:
+				p.(*devices.KonnectedMotionSensor).MotionDetected.SetValue(v.State == 1)
+			}
 		}
-		p := devices.NewKonnectedPinSvc(name)
-		p.ContactSensorState.SetValue(int(v.State))
-		a.Device.(*devices.Konnected).Pins[v.Pin] = p
-		a.Accessory.AddService(p.Service)
 	}
 
 	h, _ := platform.GetPlatform("HomeControl")
@@ -270,13 +302,11 @@ func getDetails(a *tfaccessory.TFAccessory) (*system, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Info.Println(string(*body))
 
 	var s system
 	if err := json.Unmarshal(*body, &s); err != nil {
 		return nil, err
 	}
-	log.Info.Printf("%+v", s)
 	return &s, nil
 }
 
@@ -301,10 +331,15 @@ func getStatusAndUpdate(a *tfaccessory.TFAccessory) error {
 	}
 
 	for _, v := range *status {
-		// log.Info.Printf("Pin: %d State: %d", v.Pin, v.State)
 		if p, ok := a.Device.(*devices.Konnected).Pins[v.Pin]; ok {
-			if p.ContactSensorState.GetValue() != int(v.State) {
-				p.ContactSensorState.SetValue(int(v.State))
+			switch p.(type) {
+			// case "system":
+			case *devices.KonnectedMotionSensor:
+				p.(*devices.KonnectedMotionSensor).MotionDetected.SetValue(v.State == 1)
+			case *devices.KonnectedContactSensor:
+				if p.(*devices.KonnectedContactSensor).ContactSensorState.GetValue() != int(v.State) {
+					p.(*devices.KonnectedContactSensor).ContactSensorState.SetValue(int(v.State))
+				}
 			}
 		}
 	}

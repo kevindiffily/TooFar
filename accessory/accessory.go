@@ -31,9 +31,9 @@ type TFAccessory struct {
 
 // exposed in accessory.KonnectedZones
 type Zone struct {
-	ID   uint8  `json:"ID"`
+	Pin  uint8  `json:"pin"`
+	Name string `json:"name"`
 	Type string `json:"type"`
-	// Sensor   sensor   `json:"sensor",omitempty`
 	// Actuator actuator `json:"actuator",omitempty`
 	// Command  command  `json:"command",omitempty`
 }
