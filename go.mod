@@ -8,7 +8,7 @@ require (
 	github.com/briandowns/openweathermap v0.16.0
 	github.com/brutella/hc v1.2.4
 	github.com/cloudkucooland/go-eiscp v0.0.0-20210315220823-bb61e8591737
-	github.com/cloudkucooland/go-envoy v0.0.0-20210322003445-5154cb640dba
+	github.com/cloudkucooland/go-envoy v0.0.0-20210324170520-a4d4759865dd
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/dustin/go-coap v0.0.0-20190908170653-752e0f79981e
 	github.com/eriklupander/dtls v0.0.0-20190304211642-b36018226359
@@ -24,6 +24,6 @@ require (
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/xiam/to v0.0.0-20200126224905-d60d31e03561 // indirect
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2 // indirect
-	golang.org/x/net v0.0.0-20210323141857-08027d57d8cf // indirect
-	google.golang.org/genproto v0.0.0-20210323160006-e668133fea6a // indirect
+	golang.org/x/net v0.0.0-20210324205630-d1beb07c2056 // indirect
+	google.golang.org/genproto v0.0.0-20210324141432-3032e8ff099e // indirect
 )
