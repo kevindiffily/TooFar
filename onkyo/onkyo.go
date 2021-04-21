@@ -27,6 +27,7 @@ var doOnce sync.Once
 // Startup is called by the platform management to get things going
 func (o Platform) Startup(c *config.Config) platform.Control {
 	o.Running = true
+	eiscp.SetLogger(log.Info)
 	return o
 }
 

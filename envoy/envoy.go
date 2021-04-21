@@ -25,6 +25,7 @@ var doOnce sync.Once
 // Startup is called by the platform management to start the platform up
 func (p Platform) Startup(c *config.Config) platform.Control {
 	p.Running = true
+	envoy.SetLogger(log.Info)
 	return p
 }
 
@@ -40,11 +41,7 @@ func (p Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		envoys = make(map[string]*tfaccessory.TFAccessory)
 	})
 
-	e, err := envoy.New(a.IP)
-	if err != nil {
-		log.Info.Println(err.Error())
-		return
-	}
+	e := envoy.New(a.IP)
 	settings, err := e.Info()
 	if err != nil {
 		log.Info.Println(err)

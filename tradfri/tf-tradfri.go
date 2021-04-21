@@ -74,7 +74,7 @@ func (tp Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	tradfriClient = NewTradfriClient(IP, a.Username, a.Password)
 	devs, err := tradfriClient.ListDevices()
 	if err != nil {
-		log.Info.Printf(err.Error())
+		log.Info.Println(err)
 		return
 	}
 
@@ -365,9 +365,10 @@ func tradfriUpdateAll() {
 		return
 	}
 
+	// don't do this, just walk the existing known devices
 	devs, err := tradfriClient.ListDevices()
 	if err != nil {
-		log.Info.Printf(err.Error())
+		log.Info.Println(err)
 		return
 	}
 
