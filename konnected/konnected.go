@@ -140,20 +140,27 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// tell homekit about the change
+	// tell homekit about the change and run any actions
 	if svc, ok := a.Device.(*devices.Konnected).Pins[p.Pin]; ok {
 		switch svc.(type) {
 		case devices.KonnectedSystem:
 			// system pin changed
 			newVal := characteristic.SecuritySystemCurrentStateAwayArm
+            actions := a.MatchActions("Armed")
 			if p.State == 0 {
 				newVal = characteristic.SecuritySystemCurrentStateDisarmed
+                actions = a.MatchActions("Disarmed")
 			}
 			a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.SetValue(newVal)
+            runner.RunActions(actions)
 		case *devices.KonnectedMotionSensor:
 			svc.(*devices.KonnectedMotionSensor).MotionDetected.SetValue(p.State == 1)
+            actions := a.MatchActions("Motion")
+            runner.RunActions(actions)
 		case *devices.KonnectedContactSensor:
 			svc.(*devices.KonnectedContactSensor).ContactSensorState.SetValue(int(p.State))
+            actions := a.MatchActions("Contact")
+            runner.RunActions(actions)
 		default:
 			log.Info.Println("bad type in handler: %+v", svc)
 		}

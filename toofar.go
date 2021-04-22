@@ -11,9 +11,7 @@ import (
 	"github.com/cloudkucooland/toofar/linuxsensors"
 	"github.com/cloudkucooland/toofar/onkyo"
 	"github.com/cloudkucooland/toofar/owm"
-	// "github.com/cloudkucooland/toofar/ping"
 	"github.com/cloudkucooland/toofar/platform"
-	// "github.com/cloudkucooland/toofar/samsung"
 	"github.com/cloudkucooland/toofar/shelly"
 	"github.com/cloudkucooland/toofar/tfhttp"
 	"github.com/cloudkucooland/toofar/tradfri"
@@ -45,17 +43,11 @@ func BootstrapPlatforms(c *config.Config) {
 	var onkp onkyo.Platform
 	platform.RegisterPlatform("Onkyo", onkp)
 
-	// var png ping.Platform
-	// platform.RegisterPlatform("Ping", png)
-
 	var ls linuxsensors.Platform
 	platform.RegisterPlatform("LinuxSensors", ls)
 
 	var k konnected.Platform
 	platform.RegisterPlatform("Konnected", k)
-
-	// var ss samsung.Platform
-	// platform.RegisterPlatform("Samsung", ss)
 
 	var en envoy.Platform
 	platform.RegisterPlatform("Envoy", en)
