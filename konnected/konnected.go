@@ -6,6 +6,7 @@ import (
 	"github.com/cloudkucooland/toofar/config"
 	"github.com/cloudkucooland/toofar/devices"
 	"github.com/cloudkucooland/toofar/platform"
+	"github.com/cloudkucooland/toofar/runner"
 
 	"encoding/hex"
 	"encoding/json"
@@ -112,7 +113,8 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	jBlob, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Info.Printf("konnected: unable to read update")
-		http.Error(w, `{ "status": "bad" }`, http.StatusInternalServerError)
+		// http.Error(w, `{ "status": "bad" }`, http.StatusInternalServerError)
+		fmt.Fprint(w, `{ "status": "OK" }`)
 		return
 	}
 	// if konnected provisioned with a trailing / on the url..
@@ -264,6 +266,31 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 			}
 		}
 	}
+
+	a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemTargetState.OnValueRemoteUpdate(func(newval int) {
+		// do the work to adjust the state
+		log.Info.Printf("HC requested system state change to %d", newval)
+		a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.SetValue(newval)
+		switch newval {
+		case characteristic.SecuritySystemCurrentStateStayArm:
+			actions := a.MatchActions("Home")
+			runner.RunActions(actions)
+		case characteristic.SecuritySystemCurrentStateAwayArm:
+			actions := a.MatchActions("Away")
+			runner.RunActions(actions)
+		case characteristic.SecuritySystemCurrentStateNightArm:
+			actions := a.MatchActions("Night")
+			runner.RunActions(actions)
+		case characteristic.SecuritySystemCurrentStateDisarmed:
+			actions := a.MatchActions("Disarmed")
+			runner.RunActions(actions)
+		case characteristic.SecuritySystemCurrentStateAlarmTriggered:
+			actions := a.MatchActions("Triggered")
+			runner.RunActions(actions)
+		default:
+			log.Info.Printf("unknown security system state: %d", newval)
+		}
+	})
 
 	h, _ := platform.GetPlatform("HomeControl")
 	h.AddAccessory(a)

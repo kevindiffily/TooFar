@@ -193,6 +193,17 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		hs := devices.NewHS220(a.Info)
 		a.Device = hs
 		a.Accessory = hs.Accessory
+		a.Runner = devices.HS220ActionRunner
+		hs.Lightbulb.On.OnValueRemoteUpdate(func(newval bool) {
+			if newval {
+				actions := a.MatchActions("On")
+				runner.RunActions(actions)
+			} else {
+				actions := a.MatchActions("Off")
+				runner.RunActions(actions)
+			}
+		})
+		// XXX also for dimmer state
 	}
 
 	log.Info.Printf("adding [%s]: [%s]", a.Info.Name, a.Info.Model)

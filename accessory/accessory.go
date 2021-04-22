@@ -2,7 +2,6 @@ package accessory
 
 import (
 	hcaccessory "github.com/brutella/hc/accessory"
-	"github.com/brutella/hc/log"
 	"github.com/cloudkucooland/toofar/action"
 )
 
@@ -40,15 +39,13 @@ type Zone struct {
 
 // MatchActions returns a slice of actions that should be run
 // jumping through hoops since including platform here would be circular
-func (a TFAccessory) MatchActions(state string) []*action.Action {
-	log.Info.Printf("MatchActions: %s", state)
-	var actions []*action.Action
-	for _, action := range a.Actions {
-		if action.TriggerState == state {
-			log.Info.Printf("%s: %+v", action.TriggerState, action)
-			actions = append(actions, &action)
+func (a TFAccessory) MatchActions(state string) []action.Action {
+	var out []action.Action
+	for _, check := range a.Actions {
+		if check.TriggerState == state {
+			// log.Info.Printf("%s: %+v", check.TriggerState, check)
+			out = append(out, check)
 		}
 	}
-	log.Info.Printf("%+v", actions)
-	return actions
+	return out
 }

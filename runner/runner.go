@@ -9,15 +9,15 @@ import (
 	"github.com/cloudkucooland/toofar/platform"
 )
 
-func RunActions(as []*action.Action) {
+func RunActions(as []action.Action) {
 	for _, a := range as {
-		go runAction(a)
+		go runAction(&a)
 	}
 }
 
 func runAction(a *action.Action) {
 	p, ok := platform.GetPlatform(a.TargetPlatform)
-	log.Info.Printf("running action: %+v", a)
+	// log.Info.Printf("running action: %+v", a)
 	if !ok {
 		log.Info.Printf("unknown platform [%s]", a.TargetPlatform)
 		return
@@ -27,11 +27,11 @@ func runAction(a *action.Action) {
 		log.Info.Printf("unknown device [%s]", a.TargetDevice)
 		return
 	}
-	if d.Runner != nil {
-		d.Runner(d, a)
-	} else {
+	if d.Runner == nil {
 		log.Info.Printf("[%s] does not have an action runner", d.Name)
+		return
 	}
+	d.Runner(d, a)
 }
 
 func GenericSwitchActionRunner(a *tfaccessory.TFAccessory, action *action.Action) {

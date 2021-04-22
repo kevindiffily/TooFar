@@ -1,9 +1,15 @@
 package devices
 
 import (
+	"strconv"
+
 	"github.com/brutella/hc/accessory"
 	"github.com/brutella/hc/characteristic"
+	"github.com/brutella/hc/log"
 	"github.com/brutella/hc/service"
+
+	tfaccessory "github.com/cloudkucooland/toofar/accessory"
+	"github.com/cloudkucooland/toofar/action"
 )
 
 type HS220 struct {
@@ -53,4 +59,25 @@ func NewHS220Svc() *HS220Svc {
 	svc.RemainingDuration.SetValue(0)
 
 	return &svc
+}
+
+func HS220ActionRunner(a *tfaccessory.TFAccessory, action *action.Action) {
+	switch action.Verb {
+	case "On":
+		log.Info.Printf("turning [%s] on from action runner", a.Info.Name)
+		a.Device.(*HS220).Lightbulb.On.SetValue(true)
+	case "Off":
+		log.Info.Printf("turning [%s] off from action runner", a.Info.Name)
+		a.Device.(*HS220).Lightbulb.On.SetValue(false)
+	case "Bright", "Brightness":
+		log.Info.Printf("adjusting [%s] brightness from action runner", a.Info.Name)
+		bright, err := strconv.ParseInt(action.Value, 10, 8)
+		if err != nil {
+			log.Info.Print(err.Error())
+			bright = 50
+		}
+		a.Device.(*HS220).Lightbulb.Brightness.SetValue(int(bright))
+	default:
+		log.Info.Printf("hs220 unknown verb: %s", action.Verb)
+	}
 }
