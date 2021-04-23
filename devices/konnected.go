@@ -95,3 +95,25 @@ type KonnectedSystem struct {
 	// not displayed in HC
 	State bool
 }
+
+type KonnectedBuzzer struct {
+	*service.Service
+
+	Name   *characteristic.Name
+	Active *characteristic.Active
+}
+
+func NewKonnectedBuzzer(name string) *KonnectedBuzzer {
+	svc := KonnectedBuzzer{}
+	svc.Service = service.New("FF") // custom
+
+	svc.Name = characteristic.NewName()
+	svc.Name.SetValue(name)
+	svc.AddCharacteristic(svc.Name.Characteristic)
+
+	svc.Active = characteristic.NewActive()
+	svc.Active.SetValue(characteristic.ActiveInactive)
+	svc.AddCharacteristic(svc.Active.Characteristic)
+
+	return &svc
+}

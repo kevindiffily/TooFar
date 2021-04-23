@@ -8,6 +8,7 @@ import (
 	"github.com/cloudkucooland/toofar/platform"
 	"github.com/cloudkucooland/toofar/runner"
 
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"github.com/brutella/hc/characteristic"
 	"github.com/brutella/hc/log"
 	"github.com/gorilla/mux"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -143,26 +145,41 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// tell homekit about the change and run any actions
 	if svc, ok := a.Device.(*devices.Konnected).Pins[p.Pin]; ok {
 		switch svc.(type) {
-		case devices.KonnectedSystem:
-			// system pin changed
-			newVal := characteristic.SecuritySystemCurrentStateAwayArm
-            actions := a.MatchActions("Armed")
-			if p.State == 0 {
-				newVal = characteristic.SecuritySystemCurrentStateDisarmed
-                actions = a.MatchActions("Disarmed")
-			}
-			a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.SetValue(newVal)
-            runner.RunActions(actions)
 		case *devices.KonnectedMotionSensor:
 			svc.(*devices.KonnectedMotionSensor).MotionDetected.SetValue(p.State == 1)
-            actions := a.MatchActions("Motion")
-            runner.RunActions(actions)
+			switch a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.GetValue() {
+			case characteristic.SecuritySystemCurrentStateDisarmed:
+				// nothing
+			case characteristic.SecuritySystemCurrentStateStayArm:
+				// doorchirps(a)
+			default:
+				// for now we won't do anything since the cats trip it
+				doorchirps(a)
+			}
+			actions := a.MatchActions("Motion")
+			runner.RunActions(actions)
 		case *devices.KonnectedContactSensor:
 			svc.(*devices.KonnectedContactSensor).ContactSensorState.SetValue(int(p.State))
-            actions := a.MatchActions("Contact")
-            runner.RunActions(actions)
+			switch a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.GetValue() {
+			case characteristic.SecuritySystemCurrentStateAwayArm:
+				countdownAlarm(a)
+			case characteristic.SecuritySystemCurrentStateNightArm:
+				instantAlarm(a)
+			case characteristic.SecuritySystemCurrentStateStayArm:
+				// nothing for now
+				doorchirps(a)
+			default:
+				doorchirps(a)
+			}
+			actions := a.MatchActions("Contact")
+			runner.RunActions(actions)
+		case *devices.KonnectedBuzzer: // not used
+			svc.(*devices.KonnectedBuzzer).Active.SetValue(int(p.State))
+			actions := a.MatchActions("Buzzer")
+			runner.RunActions(actions)
 		default:
 			log.Info.Println("bad type in handler: %+v", svc)
+			doorchirps(a)
 		}
 	}
 	fmt.Fprint(w, `{ "status": "OK" }`)
@@ -176,6 +193,7 @@ type Platform struct {
 var konnecteds map[string]*tfaccessory.TFAccessory
 var doOnce sync.Once
 var client *http.Client
+var disarmed chan (bool)
 
 // Startup is called by the platform management to get things going
 func (s Platform) Startup(c *config.Config) platform.Control {
@@ -191,6 +209,8 @@ func (s Platform) Startup(c *config.Config) platform.Control {
 		IdleConnTimeout: 30 * time.Second,
 	}
 	client = &http.Client{Transport: tr, Timeout: time.Second * time.Duration(timeout)}
+
+	disarmed = make(chan bool)
 	return s
 }
 
@@ -236,11 +256,6 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 
 	for _, v := range a.KonnectedZones {
 		switch v.Type {
-		case "system":
-			p := devices.KonnectedSystem{}
-			a.Device.(*devices.Konnected).Pins[v.Pin] = p
-			// no need for an HK display
-			log.Info.Printf("Konnected Pin: %d: %s (system)", v.Pin, v.Name)
 		case "motion":
 			p := devices.NewKonnectedMotionSensor(v.Name)
 			a.Device.(*devices.Konnected).Pins[v.Pin] = p
@@ -251,6 +266,11 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 			a.Device.(*devices.Konnected).Pins[v.Pin] = p
 			a.Accessory.AddService(p.Service)
 			log.Info.Printf("Konnected Pin: %d: %s (contact)", v.Pin, v.Name)
+		case "buzzer": // not used
+			p := devices.NewKonnectedBuzzer(v.Name)
+			a.Device.(*devices.Konnected).Pins[v.Pin] = p
+			a.Accessory.AddService(p.Service)
+			log.Info.Printf("Konnected Pin: %d: %s (buzzer)", v.Pin, v.Name)
 		default:
 			log.Info.Println("unknown KonnectedZone type")
 		}
@@ -259,44 +279,60 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	for _, v := range details.Sensors {
 		if p, ok := a.Device.(*devices.Konnected).Pins[v.Pin]; ok {
 			switch p.(type) {
-			case *devices.KonnectedSystem:
-				// system pin changed
-				newVal := characteristic.SecuritySystemCurrentStateAwayArm
-				if v.State == 0 {
-					newVal = characteristic.SecuritySystemCurrentStateDisarmed
-				}
-				a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.SetValue(newVal)
 			case *devices.KonnectedContactSensor:
 				p.(*devices.KonnectedContactSensor).ContactSensorState.SetValue(int(v.State))
 			case *devices.KonnectedMotionSensor:
 				p.(*devices.KonnectedMotionSensor).MotionDetected.SetValue(v.State == 1)
+			case *devices.KonnectedBuzzer:
+				p.(*devices.KonnectedBuzzer).Active.SetValue(int(v.State))
+			default:
+				log.Info.Println("unknown konnected device type")
 			}
 		}
 	}
 
 	a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemTargetState.OnValueRemoteUpdate(func(newval int) {
-		// do the work to adjust the state
 		log.Info.Printf("HC requested system state change to %d", newval)
-		a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.SetValue(newval)
+		triggered := true
+		if a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.GetValue() !=
+			characteristic.SecuritySystemCurrentStateAlarmTriggered {
+			triggered = false
+		}
 		switch newval {
 		case characteristic.SecuritySystemCurrentStateStayArm:
+			if triggered {
+				log.Info.Println("not changing while in triggered state")
+				return
+			}
 			actions := a.MatchActions("Home")
 			runner.RunActions(actions)
 		case characteristic.SecuritySystemCurrentStateAwayArm:
+			if triggered {
+				log.Info.Println("not changing while in triggered state")
+				return
+			}
 			actions := a.MatchActions("Away")
 			runner.RunActions(actions)
 		case characteristic.SecuritySystemCurrentStateNightArm:
+			if triggered {
+				log.Info.Println("not changing while in triggered state")
+				return
+			}
 			actions := a.MatchActions("Night")
 			runner.RunActions(actions)
 		case characteristic.SecuritySystemCurrentStateDisarmed:
+			if triggered {
+				log.Info.Println("shutting off alarm")
+				cancelAlarm(a)
+			}
 			actions := a.MatchActions("Disarmed")
-			runner.RunActions(actions)
-		case characteristic.SecuritySystemCurrentStateAlarmTriggered:
-			actions := a.MatchActions("Triggered")
 			runner.RunActions(actions)
 		default:
 			log.Info.Printf("unknown security system state: %d", newval)
+			return
 		}
+		a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.SetValue(newval)
+		beep(a)
 	})
 
 	h, _ := platform.GetPlatform("HomeControl")
@@ -309,11 +345,16 @@ func kRunner(a *tfaccessory.TFAccessory, action *action.Action) {
 	log.Info.Printf("in konnected action runner: %+v", a)
 }
 
-func doRequest(a *tfaccessory.TFAccessory, method, url string) (*[]byte, error) {
-	req, err := http.NewRequest("GET", url, nil)
+func doRequest(a *tfaccessory.TFAccessory, method, url string, buf io.Reader) (*[]byte, error) {
+	req, err := http.NewRequest(method, url, buf)
 	if err != nil {
 		return nil, err
 	}
+
+	if method == "PUT" {
+		req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -334,7 +375,7 @@ func (s Platform) GetAccessory(mac string) (*tfaccessory.TFAccessory, bool) {
 
 func getDetails(a *tfaccessory.TFAccessory) (*system, error) {
 	url := fmt.Sprintf("http://%s/status", a.IP)
-	body, err := doRequest(a, "GET", url)
+	body, err := doRequest(a, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -348,7 +389,7 @@ func getDetails(a *tfaccessory.TFAccessory) (*system, error) {
 
 func getStatus(a *tfaccessory.TFAccessory) (*[]sensor, error) {
 	url := fmt.Sprintf("http://%s/device", a.IP)
-	body, err := doRequest(a, "GET", url)
+	body, err := doRequest(a, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -369,13 +410,14 @@ func getStatusAndUpdate(a *tfaccessory.TFAccessory) error {
 	for _, v := range *status {
 		if p, ok := a.Device.(*devices.Konnected).Pins[v.Pin]; ok {
 			switch p.(type) {
-			// case "system":
 			case *devices.KonnectedMotionSensor:
 				p.(*devices.KonnectedMotionSensor).MotionDetected.SetValue(v.State == 1)
 			case *devices.KonnectedContactSensor:
 				if p.(*devices.KonnectedContactSensor).ContactSensorState.GetValue() != int(v.State) {
 					p.(*devices.KonnectedContactSensor).ContactSensorState.SetValue(int(v.State))
 				}
+			default:
+				log.Info.Printf("konnected device not processed: pin %d", v.Pin)
 			}
 		}
 	}
@@ -402,4 +444,97 @@ func (k Platform) backgroundPuller() {
 			continue
 		}
 	}
+}
+
+func beep(a *tfaccessory.TFAccessory) {
+	if a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.GetValue() !=
+		characteristic.SecuritySystemCurrentStateAlarmTriggered {
+		doBuzz(a, `"state":1, "momentary":120, "times":2, "pause":55`, characteristic.ActiveInactive)
+	} else {
+		log.Info.Println("not beeping since in triggered state")
+	}
+}
+
+func doorchirps(a *tfaccessory.TFAccessory) {
+	if a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.GetValue() !=
+		characteristic.SecuritySystemCurrentStateAlarmTriggered {
+		doBuzz(a, `"state":1, "momentary":10, "times":5, "pause":30`, characteristic.ActiveInactive)
+	} else {
+		log.Info.Println("not doing chirps since in triggered state")
+	}
+}
+
+func instantAlarm(a *tfaccessory.TFAccessory) {
+	a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.SetValue(characteristic.SecuritySystemCurrentStateAlarmTriggered)
+	log.Info.Println("sending alarm")
+	doBuzz(a, `"state":1`, characteristic.ActiveActive)
+
+	// notify noonlight
+
+	go func() {
+		select {
+		case <-disarmed:
+			// cancelAlarm called
+			// send all-clear to noonlight
+			beep(a)
+		case <-time.After(5 * time.Minute):
+			beep(a) // no point of ringing for longer
+		}
+	}()
+}
+
+func countdownAlarm(a *tfaccessory.TFAccessory) {
+	log.Info.Println("starting countdown")
+	a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.SetValue(characteristic.SecuritySystemCurrentStateAlarmTriggered)
+
+	doBuzz(a, `"state":1, "momentary":50, "pause":450`, characteristic.ActiveInactive)
+
+	go func() {
+		select {
+		case <-disarmed:
+			// cancelAlarm called
+		case <-time.After(1 * time.Minute):
+			instantAlarm(a)
+		}
+	}()
+}
+
+func getBuzzerPin(a *tfaccessory.TFAccessory) uint8 {
+	// TBD do the work...
+	return 8
+}
+
+func getBuzzer(a *tfaccessory.TFAccessory) *devices.KonnectedBuzzer {
+	pin := getBuzzerPin(a)
+	if svc, ok := a.Device.(*devices.Konnected).Pins[pin]; ok {
+		return svc.(*devices.KonnectedBuzzer)
+	}
+	return nil
+}
+
+func cancelAlarm(a *tfaccessory.TFAccessory) {
+	if a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.GetValue() ==
+		characteristic.SecuritySystemCurrentStateDisarmed {
+		log.Info.Println("not triggered, nothing to cancel")
+		return
+	}
+
+	doBuzz(a, `"state": 0`, characteristic.ActiveInactive)
+	disarmed <- true
+	a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.SetValue(characteristic.SecuritySystemCurrentStateDisarmed)
+}
+
+func doBuzz(a *tfaccessory.TFAccessory, cmd string, hcstate int) error {
+	if buzzer := getBuzzer(a); buzzer != nil {
+		buzzer.Active.SetValue(hcstate)
+	}
+
+	pin := getBuzzerPin(a)
+	url := fmt.Sprintf("http://%s/device", a.IP)
+	fullcmd := fmt.Sprintf("{\"pin\":%d, %s}", pin, cmd)
+	_, err := doRequest(a, "PUT", url, bytes.NewBuffer([]byte(fullcmd)))
+	if err != nil {
+		return err
+	}
+	return nil
 }
