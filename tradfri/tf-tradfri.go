@@ -74,11 +74,15 @@ func (tp Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	tradfriClient = NewTradfriClient(IP, a.Username, a.Password)
 	devs, err := tradfriClient.ListDevices()
 	if err != nil {
-		log.Info.Println(err)
+		log.Info.Println("failed: ", err)
 		return
 	}
 
 	for _, d := range devs {
+		if d.Metadata.Vendor == "IKEA of Sweden" {
+			log.Info.Printf("Skipping: [%s]", d.Name)
+			continue
+		}
 		did := fmt.Sprintf("%d", d.DeviceId)
 		newDevice := tfaccessory.TFAccessory{
 			Platform: "Tradfri-Device",
@@ -95,7 +99,7 @@ func (tp Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		if newDevice.Info.SerialNumber == "" {
 			newDevice.Info.SerialNumber = d.Name
 		}
-		log.Info.Printf("Adding: [%s]: [%s]", newDevice.Info.Name, newDevice.Info.Model)
+		log.Info.Printf("Adding: [%s]: [%s] [%s]", newDevice.Info.Name, newDevice.Info.Model, newDevice.Info.Manufacturer)
 
 		switch d.Type {
 		case DeviceTypeRemote:

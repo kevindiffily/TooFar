@@ -154,6 +154,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 				// doorchirps(a)
 			default:
 				// for now we won't do anything since the cats trip it
+				log.Info.Println("motion detected while alarm armed; pin: %d", p.Pin)
 				doorchirps(a)
 			}
 			actions := a.MatchActions("Motion")
@@ -171,6 +172,11 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			default:
 				doorchirps(a)
 			}
+			state := "opened"
+			if p.State == 0 {
+				state = "closed"
+			}
+			log.Info.Printf("%s: %s", svc.(*devices.KonnectedContactSensor).Name.GetValue(), state)
 			actions := a.MatchActions("Contact")
 			runner.RunActions(actions)
 		case *devices.KonnectedBuzzer: // not used
@@ -332,7 +338,10 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 			return
 		}
 		a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.SetValue(newval)
-		beep(a)
+		// let a triggered alarm continue to ring until cancelAlarm takes care of it
+		if !triggered {
+			beep(a)
+		}
 	})
 
 	h, _ := platform.GetPlatform("HomeControl")

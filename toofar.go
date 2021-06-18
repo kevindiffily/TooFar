@@ -9,6 +9,7 @@ import (
 	"github.com/cloudkucooland/toofar/kasa"
 	"github.com/cloudkucooland/toofar/konnected"
 	"github.com/cloudkucooland/toofar/linuxsensors"
+	"github.com/cloudkucooland/toofar/noonlight"
 	"github.com/cloudkucooland/toofar/onkyo"
 	"github.com/cloudkucooland/toofar/owm"
 	"github.com/cloudkucooland/toofar/platform"
@@ -51,6 +52,9 @@ func BootstrapPlatforms(c *config.Config) {
 
 	var en envoy.Platform
 	platform.RegisterPlatform("Envoy", en)
+
+	var nl noonlight.Platform
+	platform.RegisterPlatform("noonlight", nl)
 
 	var hcp tfhc.HCPlatform
 	platform.RegisterPlatform("HomeControl", hcp)
