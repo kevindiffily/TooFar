@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/brutella/dnssd"
-    "github.com/brutella/hc/log"
+	"github.com/brutella/hc/log"
 )
 
 func discover() (string, error) {

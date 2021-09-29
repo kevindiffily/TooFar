@@ -66,15 +66,15 @@ func (tp Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	})
 	h, _ := platform.GetPlatform("HomeControl")
 
-    if a.IP == "" {
-        log.Info.Print("discovering Tradfri")
-        
-        var err error
-        if a.IP, err = discover(); err != nil {
+	if a.IP == "" {
+		log.Info.Print("discovering Tradfri")
+
+		var err error
+		if a.IP, err = discover(); err != nil {
 			log.Info.Printf("discover failed: [%s]", err.Error())
-            return
-        }
-    }
+			return
+		}
+	}
 
 	// add the gateway to our list
 	tradfris[a.IP] = a
