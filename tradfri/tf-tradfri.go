@@ -380,7 +380,7 @@ func tradfriUpdateAll() {
 		did := fmt.Sprintf("%d", d.DeviceId)
 		tdd, ok := td.GetAccessory(did)
 		if !ok {
-			log.Info.Printf("unable to get Tradfri-Device [%s]", did)
+			// log.Debug.Printf("unable to get Tradfri-Device [%s]", did)
 			continue
 		}
 
