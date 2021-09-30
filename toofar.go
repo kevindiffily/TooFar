@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/cloudkucooland/toofar/accessory"
 	"github.com/cloudkucooland/toofar/config"
-	"github.com/cloudkucooland/toofar/envoy"
 	"github.com/cloudkucooland/toofar/homecontrol"
 	"github.com/cloudkucooland/toofar/kasa"
 	"github.com/cloudkucooland/toofar/konnected"
@@ -13,7 +12,6 @@ import (
 	"github.com/cloudkucooland/toofar/onkyo"
 	"github.com/cloudkucooland/toofar/owm"
 	"github.com/cloudkucooland/toofar/platform"
-	"github.com/cloudkucooland/toofar/shelly"
 	"github.com/cloudkucooland/toofar/tfhttp"
 	"github.com/cloudkucooland/toofar/tradfri"
 	"time"
@@ -28,9 +26,6 @@ func BootstrapPlatforms(c *config.Config) {
 
 	var h tfhttp.Platform
 	platform.RegisterPlatform("HTTP", h)
-
-	var s shelly.Platform
-	platform.RegisterPlatform("Shelly", s)
 
 	var tp tradfri.Platform
 	platform.RegisterPlatform("Tradfri", tp)
@@ -50,9 +45,6 @@ func BootstrapPlatforms(c *config.Config) {
 	var k konnected.Platform
 	platform.RegisterPlatform("Konnected", k)
 
-	var en envoy.Platform
-	platform.RegisterPlatform("Envoy", en)
-
 	var nl noonlight.Platform
 	platform.RegisterPlatform("noonlight", nl)
 
@@ -68,8 +60,6 @@ func BootstrapPlatforms(c *config.Config) {
 	// auto-discover Kasa devices
 	if c.Discover {
 		kp.Discover() // UDP probe for Kasa devices
-		// s.Discover() // TBD shelly discovery
-		// wait a bit for discovery to complete -- otherwise HCStart runs before all devices are found
 		time.Sleep(time.Second)
 	}
 }

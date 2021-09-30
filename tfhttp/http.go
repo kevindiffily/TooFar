@@ -8,7 +8,6 @@ import (
 	"github.com/cloudkucooland/toofar/config"
 	"github.com/cloudkucooland/toofar/konnected"
 	"github.com/cloudkucooland/toofar/platform"
-	"github.com/cloudkucooland/toofar/shelly"
 	"github.com/gorilla/mux"
 	"net/http"
 	"net/http/httputil"
@@ -28,7 +27,6 @@ func (h Platform) Startup(c *config.Config) platform.Control {
 	// each platform should register its own routes
 	r := mux.NewRouter()
 	r.HandleFunc("/", homeHandler)
-	r.HandleFunc("/shelly/{cmd}", shelly.Handler)
 	r.HandleFunc("/konnected/device/{device}", konnected.Handler)
 	r.HandleFunc("/konnected/{device}", konnected.Handler)
 
