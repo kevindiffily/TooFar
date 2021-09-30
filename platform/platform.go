@@ -2,7 +2,7 @@ package platform
 
 import (
 	// "fmt"
-	// "github.com/brutella/hc/log"
+	"github.com/brutella/hc/log"
 	"github.com/cloudkucooland/toofar/accessory"
 	"github.com/cloudkucooland/toofar/config"
 	"sync"
@@ -52,7 +52,7 @@ func ShutdownAllPlatforms() {
 // StartupAllPlatforms is called at process start to initialize all platforms
 func StartupAllPlatforms(c *config.Config) {
 	for name, platform := range platforms {
-		// log.Info.Printf("Starting up: %s", name)
+		log.Info.Printf("Starting up: %s", name)
 		platforms[name] = platform.Startup(c)
 	}
 }

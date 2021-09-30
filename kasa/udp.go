@@ -29,6 +29,9 @@ func doUDPresponse(ip, res string) {
 		if !config.Get().Discover {
 			return
 		}
+		if _, ok := kasas.ignore[ip]; ok {
+			return
+		}
 		log.Info.Printf("adding previously unknown device: %s", ip)
 		newAcc := &tfaccessory.TFAccessory{Platform: "Kasa", IP: ip, Name: ip}
 		k.AddAccessory(newAcc)

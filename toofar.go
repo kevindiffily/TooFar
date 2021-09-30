@@ -14,7 +14,6 @@ import (
 	"github.com/cloudkucooland/toofar/platform"
 	"github.com/cloudkucooland/toofar/tfhttp"
 	"github.com/cloudkucooland/toofar/tradfri"
-	"time"
 
 	"github.com/brutella/hc/log"
 )
@@ -56,12 +55,6 @@ func BootstrapPlatforms(c *config.Config) {
 	// add OS sensors
 	sensor := accessory.TFAccessory{}
 	ls.AddAccessory(&sensor)
-
-	// auto-discover Kasa devices
-	if c.Discover {
-		kp.Discover() // UDP probe for Kasa devices
-		time.Sleep(time.Second)
-	}
 }
 
 // AddAccessory is a wrapper to each platform's AddAccessory, no need to expose each platform to the daemon

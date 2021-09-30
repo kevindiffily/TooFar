@@ -22,10 +22,10 @@ var hcs map[string]*tfaccessory.TFAccessory
 
 // Startup is called by the platform bootstrap
 func (h HCPlatform) Startup(c *config.Config) platform.Control {
-	doOnceHC.Do(func() {
+	if !h.Running {
 		hcs = make(map[string]*tfaccessory.TFAccessory)
 		h.Running = true
-	})
+	}
 	return h
 }
 
@@ -81,6 +81,10 @@ func (h HCPlatform) Shutdown() platform.Control {
 
 // AddAccessory registers a device with HC
 func (h HCPlatform) AddAccessory(a *tfaccessory.TFAccessory) {
+	if hcs == nil {
+		h.Startup(&config.Config{})
+	}
+
 	// catch devices that didn't get migrated properly
 	if a.Accessory == nil {
 		log.Info.Printf("accessory unset: %v", a.Info)

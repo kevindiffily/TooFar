@@ -41,30 +41,33 @@ type Platform struct {
 }
 
 type kmu struct {
-	mu sync.Mutex
-	ks map[string]*tfaccessory.TFAccessory
+	mu     sync.Mutex
+	ks     map[string]*tfaccessory.TFAccessory
+	ignore map[string]bool
 }
 
 var kasas kmu
-var doOnce sync.Once
 var kasaUDPconn *net.UDPConn
 
 // Startup is called by the platform management to start the platform up
 func (k Platform) Startup(c *config.Config) platform.Control {
+	kasas.ks = make(map[string]*tfaccessory.TFAccessory)
+	kasas.ignore = make(map[string]bool)
+
 	udpl, err := net.ListenUDP("udp", &net.UDPAddr{IP: nil, Port: 9999})
 	if err != nil {
-		fmt.Printf("unable to start UDP listener: %s", err.Error())
+		log.Info.Printf("unable to start kasa UDP listener: %s", err.Error())
 		return k
 	}
 	kasaUDPconn = udpl
 
 	go func() {
 		buffer := make([]byte, 1024)
-		fmt.Println("starting listener")
+		log.Info.Println("starting kasa UDP listener")
 		for {
 			n, addr, err := kasaUDPconn.ReadFromUDP(buffer)
 			if err != nil {
-				fmt.Println(err.Error())
+				log.Info.Println(err.Error())
 				break
 			}
 			res := decrypt(buffer[0:n])
@@ -72,6 +75,9 @@ func (k Platform) Startup(c *config.Config) platform.Control {
 		}
 		// return
 	}()
+
+	// time.Sleep(time.Second)
+	broadcastCmd(cmd_sysinfo)
 
 	k.Running = true
 	return k
@@ -85,12 +91,6 @@ func (k Platform) Shutdown() platform.Control {
 
 // AddAccessory adds a Kasa device, pulls it for info, then adds it to HC
 func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
-	doOnce.Do(func() {
-		kasas.mu.Lock()
-		kasas.ks = make(map[string]*tfaccessory.TFAccessory)
-		kasas.mu.Unlock()
-	})
-
 	hc, ok := platform.GetPlatform("HomeControl")
 	if !ok {
 		log.Info.Println("can't add accessory, HomeControl platform does not yet exist")
@@ -107,6 +107,7 @@ func (k Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	settings, err := getSettingsTCP(a)
 	if err != nil {
 		log.Info.Printf("unable to identify kasa device, skipping: %s", err.Error())
+		kasas.ignore[a.IP] = true
 		return
 	}
 	a.Info.Name = settings.Alias
@@ -378,9 +379,9 @@ func setBrightness(a *tfaccessory.TFAccessory, newval int) error {
 
 // GetAccessory looks up a Kasa device by IP address
 func (k Platform) GetAccessory(ip string) (*tfaccessory.TFAccessory, bool) {
-	kasas.mu.Lock()
+	// kasas.mu.Lock()
 	val, ok := kasas.ks[ip]
-	kasas.mu.Unlock()
+	// kasas.mu.Unlock()
 	return val, ok
 }
 
