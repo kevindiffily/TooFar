@@ -2,11 +2,9 @@ package konnected
 
 import (
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
-	"github.com/cloudkucooland/toofar/action"
 	"github.com/cloudkucooland/toofar/config"
 	"github.com/cloudkucooland/toofar/devices"
 	"github.com/cloudkucooland/toofar/platform"
-	"github.com/cloudkucooland/toofar/runner"
 
 	"bytes"
 	"encoding/hex"
@@ -157,8 +155,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 				log.Info.Println("motion detected while alarm armed; pin: %d", p.Pin)
 				doorchirps(a)
 			}
-			actions := a.MatchActions("Motion")
-			runner.RunActions(actions)
 		case *devices.KonnectedContactSensor:
 			svc.(*devices.KonnectedContactSensor).ContactSensorState.SetValue(int(p.State))
 			switch a.Device.(*devices.Konnected).SecuritySystem.SecuritySystemCurrentState.GetValue() {
@@ -177,12 +173,8 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 				state = "closed"
 			}
 			log.Info.Printf("%s: %s", svc.(*devices.KonnectedContactSensor).Name.GetValue(), state)
-			actions := a.MatchActions("Contact")
-			runner.RunActions(actions)
 		case *devices.KonnectedBuzzer: // not used
 			svc.(*devices.KonnectedBuzzer).Active.SetValue(int(p.State))
-			actions := a.MatchActions("Buzzer")
-			runner.RunActions(actions)
 		default:
 			log.Info.Println("bad type in handler: %+v", svc)
 			doorchirps(a)
@@ -310,29 +302,21 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 				log.Info.Println("not changing while in triggered state")
 				return
 			}
-			actions := a.MatchActions("Home")
-			runner.RunActions(actions)
 		case characteristic.SecuritySystemCurrentStateAwayArm:
 			if triggered {
 				log.Info.Println("not changing while in triggered state")
 				return
 			}
-			actions := a.MatchActions("Away")
-			runner.RunActions(actions)
 		case characteristic.SecuritySystemCurrentStateNightArm:
 			if triggered {
 				log.Info.Println("not changing while in triggered state")
 				return
 			}
-			actions := a.MatchActions("Night")
-			runner.RunActions(actions)
 		case characteristic.SecuritySystemCurrentStateDisarmed:
 			if triggered {
 				log.Info.Println("shutting off alarm")
 				cancelAlarm(a)
 			}
-			actions := a.MatchActions("Disarmed")
-			runner.RunActions(actions)
 		default:
 			log.Info.Printf("unknown security system state: %d", newval)
 			return
@@ -346,12 +330,6 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 
 	h, _ := platform.GetPlatform("HomeControl")
 	h.AddAccessory(a)
-
-	a.Runner = kRunner
-}
-
-func kRunner(a *tfaccessory.TFAccessory, action *action.Action) {
-	log.Info.Printf("in konnected action runner: %+v", a)
 }
 
 func doRequest(a *tfaccessory.TFAccessory, method, url string, buf io.Reader) (*[]byte, error) {

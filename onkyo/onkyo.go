@@ -161,7 +161,6 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 		handleRemote(a, newstate)
 	})
 
-	a.Runner = runner
 	// addController(a)
 }
 

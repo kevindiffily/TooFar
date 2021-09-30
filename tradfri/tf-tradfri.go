@@ -5,14 +5,12 @@ package tradfri
 import (
 	"github.com/brutella/hc/log"
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
-	"github.com/cloudkucooland/toofar/action"
 	"github.com/cloudkucooland/toofar/config"
 	"github.com/cloudkucooland/toofar/devices"
 	"github.com/cloudkucooland/toofar/platform"
 
 	"fmt"
 	"math"
-	"strconv"
 	"sync"
 	"time"
 
@@ -159,7 +157,6 @@ func (tp Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 			// h.AddAccessory // -- unsupported by HomeKit
 		}
 
-		newDevice.Runner = runner
 		tradfriDevices[did] = &newDevice
 	}
 }
@@ -292,41 +289,6 @@ func lightbulbHSL(newDevice *tfaccessory.TFAccessory, d model.Device) {
 			log.Info.Println(err.Error())
 		}
 	})
-}
-
-// this is not full-featured, but meets my limited needs
-func runner(a *tfaccessory.TFAccessory, action *action.Action) {
-	log.Info.Printf("in tradfri-device action runner: %+v %+v", a, action)
-	switch action.Verb {
-	case "SetBrightness":
-		target, _ := strconv.Atoi(action.Value)
-
-		// if it is already at the target, set to full-on
-		bv := a.Device.(*accessory.ColoredLightbulb).Lightbulb.Brightness.GetValue()
-		log.Info.Printf("current brightness: %d, target: %d", bv, target)
-		if bv == target {
-			log.Info.Printf("adjusting target too 99")
-			target = 99
-		}
-
-		// update hardware
-		_, err := tradfriClient.PutDeviceDimming(a.Name, target*255/100)
-		if err != nil {
-			log.Info.Println(err.Error())
-		}
-
-		// update GUI
-		switch a.Device.(type) {
-		case *accessory.ColoredLightbulb:
-			a.Device.(*accessory.ColoredLightbulb).Lightbulb.Brightness.SetValue(target)
-		case *devices.TempLightbulb:
-			a.Device.(*devices.TempLightbulb).Lightbulb.Brightness.SetValue(target)
-		}
-	case "Toggle":
-		log.Info.Println("toggle verb called")
-	default:
-		log.Info.Printf("unknown tradfri verb: %s", action.Verb)
-	}
 }
 
 // GetAccessory gets the bridge by IP address

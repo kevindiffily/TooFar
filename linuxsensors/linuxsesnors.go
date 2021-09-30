@@ -4,7 +4,6 @@ import (
 	"github.com/ssimunic/gosensors"
 
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
-	"github.com/cloudkucooland/toofar/action"
 	"github.com/cloudkucooland/toofar/config"
 	"github.com/cloudkucooland/toofar/devices"
 	"github.com/cloudkucooland/toofar/platform"
@@ -59,7 +58,6 @@ func (s Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	a.Info.ID = 103
 	a.Info.SerialNumber = serial
 	a.Info.FirmwareRevision = "0.0.3"
-	a.Runner = actionRunner
 
 	nfs, err := gosensors.NewFromSystem()
 	if err != nil {
@@ -156,10 +154,6 @@ func readFIFO(s *service.TemperatureSensor) {
 		s.CurrentTemperature.SetValue(temp)
 		// time.Sleep(30 * time.Second)
 	}
-}
-
-func actionRunner(a *tfaccessory.TFAccessory, d *action.Action) {
-	log.Info.Printf("in linuxsensors action runner: %+v %+v", a, d)
 }
 
 // GetAccessory looks up an sensor

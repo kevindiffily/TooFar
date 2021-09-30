@@ -4,7 +4,6 @@ import (
 	owm "github.com/briandowns/openweathermap"
 
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
-	"github.com/cloudkucooland/toofar/action"
 	"github.com/cloudkucooland/toofar/config"
 	"github.com/cloudkucooland/toofar/devices"
 	"github.com/cloudkucooland/toofar/platform"
@@ -78,8 +77,6 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	h.AddAccessory(a)
 	a.UpdateIDs()
 
-	a.Runner = actionRunner
-
 	w, err := owm.NewCurrent("C", "EN", a.Password)
 	if err != nil {
 		log.Info.Println(err.Error())
@@ -95,10 +92,6 @@ func (o Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	if owmdev.HumiditySensor.CurrentRelativeHumidity.GetValue() != float64(w.Main.Humidity) {
 		owmdev.HumiditySensor.CurrentRelativeHumidity.SetValue(float64(w.Main.Humidity))
 	}
-}
-
-func actionRunner(a *tfaccessory.TFAccessory, d *action.Action) {
-	log.Info.Printf("in owm action runner: %+v %+v", a, d)
 }
 
 // GetAccessory looks up an OWM sensor

@@ -4,7 +4,6 @@ import (
 	"github.com/brutella/hc/accessory"
 	"github.com/brutella/hc/log"
 	tfaccessory "github.com/cloudkucooland/toofar/accessory"
-	"github.com/cloudkucooland/toofar/action"
 	"github.com/cloudkucooland/toofar/config"
 	"github.com/cloudkucooland/toofar/devices"
 	"github.com/cloudkucooland/toofar/platform"
@@ -45,8 +44,6 @@ func (p Platform) AddAccessory(a *tfaccessory.TFAccessory) {
 	a.Device = devices.NewNoonlight(a.Info)
 	a.Accessory = a.Device.(*devices.Noonlight).Accessory
 
-	a.Runner = runner
-
 	p.noonlight = a
 
 	h, _ := platform.GetPlatform("HomeControl")
@@ -60,8 +57,4 @@ func (p Platform) GetAccessory(name string) (*tfaccessory.TFAccessory, bool) {
 
 func (p Platform) Background() {
 	// nothing
-}
-
-func runner(a *tfaccessory.TFAccessory, m *action.Action) {
-	log.Info.Println("noonlight action runner")
 }
